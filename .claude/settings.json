@@ -1,0 +1,14 @@
+{
+  "enabledPlugins": {
+    "mattpocock-skills@claude-plugins-official": true,
+    "modern-go-guidelines@goland-claude-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "goland-claude-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "JetBrains/go-modern-guidelines"
+      }
+    }
+  }
+}

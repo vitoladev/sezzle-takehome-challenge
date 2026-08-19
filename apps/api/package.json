@@ -1,0 +1,13 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "air",
+    "dev:once": "go run ./cmd/server",
+    "generate": "go generate ./...",
+    "build": "go build -buildvcs=false -o bin/server ./cmd/server",
+    "test": "go test -race ./...",
+    "lint": "go vet ./...",
+    "clean": "rm -rf bin tmp"
+  }
+}

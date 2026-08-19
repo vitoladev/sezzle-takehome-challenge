@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/sezzle-take-home-challenge:cached
+      # Main repo's .git dir at its host path so git works in linked worktrees
+      # (their .git file points at this absolute path). Exported by up.sh/exec.sh.
+      - ${GIT_COMMON_DIR}:${GIT_COMMON_DIR}
+    # Host ports: up.sh exports 5173/8080 for the main worktree so the dev
+    # servers are reachable from the host; linked worktrees get random free
+    # ports (0) so parallel containers never collide.
+    ports:
+      - "127.0.0.1:${HOST_WEB_PORT:-0}:5173"
+      - "127.0.0.1:${HOST_API_PORT:-0}:8080"
+    command: sleep infinity

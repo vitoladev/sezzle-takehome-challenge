@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: Sezzle Take-Home API
+  version: 1.0.0
+  description: >-
+    Single source of truth for the API shared by the Go backend and the React
+    frontend. Extend this spec first, then regenerate both sides with
+    `pnpm generate`.
+servers:
+  - url: /api
+    description: The frontend reaches the backend under the /api prefix (Vite proxy).
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      description: Reports whether the API is up.
+      responses:
+        '200':
+          description: The API is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          description: The API is up but unhealthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Health:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: ok
+    ErrorCode:
+      type: string
+      description: Machine-readable error code.
+      enum:
+        - invalid_request
+        - not_found
+        - internal_error
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorCode'

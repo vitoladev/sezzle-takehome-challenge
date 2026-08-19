@@ -1,0 +1,29 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "generate": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/api-contract/openapi.yaml"],
+      "outputs": ["src/schema.d.ts", "internal/httpapi/gen.go"]
+    },
+    "build": {
+      "dependsOn": ["^build", "generate", "^generate"],
+      "outputs": ["dist/**", "bin/**"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["build", "generate", "^generate"],
+      "outputs": [],
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["PORT"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

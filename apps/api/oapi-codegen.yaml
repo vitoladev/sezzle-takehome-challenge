@@ -1,0 +1,6 @@
+# output is relative to internal/httpapi (go generate's cwd), hence the bare gen.go.
+package: httpapi
+output: gen.go
+generate:
+  models: true
+  std-http-server: true

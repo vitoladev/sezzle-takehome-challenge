@@ -1,0 +1,25 @@
+{
+  "name": "sezzle-take-home-challenge",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/sezzle-take-home-challenge",
+  "containerEnv": {
+    "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
+    "TURBO_CACHE_DIR": "${containerWorkspaceFolder}/.turbo/cache",
+    "TURBO_DAEMON": "false"
+  },
+  // testcontainers-go (integration tests) drives the host's Docker daemon: the
+  // socket is bind-mounted in, and the feature proxies it so the non-root
+  // remoteUser can reach it.
+  "mounts": ["source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"],
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+      "installDockerBuildx": false,
+      "installDockerComposeSwitch": false
+    }
+  },
+  "postCreateCommand": "pnpm install",
+  "forwardPorts": [5173, 8080],
+  "remoteUser": "vscode"
+}

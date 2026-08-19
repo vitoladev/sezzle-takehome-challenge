@@ -1,0 +1,10 @@
+node_modules/
+.turbo/
+dist/
+bin/
+*.log
+.DS_Store
+.idea/
+.pnpm-store/
+# verify-* skill scratch specs (promote-e2e may promote them)
+.verify/
