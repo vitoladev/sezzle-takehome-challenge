@@ -23,6 +23,11 @@ execution. The full guidance lives in the `coding-guidelines` skill
 (`.claude/skills/coding-guidelines/SKILL.md`) — use it when writing,
 reviewing, or refactoring code.
 
+`docs/CODING_STANDARDS.md` is the review-facing counterpart: numbered,
+citable rules (`GO-*`, `WEB-*`, `GEN-*`, `TOOL-*`) that reviews quote back.
+Code review runs `mattpocock-skills:code-review` — always fully qualified,
+never the unqualified `code-review`, which is Claude's built-in bug hunter.
+
 ## Devcontainer-only development
 
 All toolchain commands (pnpm, turbo, go, node) run inside a per-worktree

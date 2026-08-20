@@ -24,7 +24,8 @@ its PRs. Merging stays with the user (`gh stack merge`).
 Every slice passes the same gate before the next one starts: verified
 (`verify-backend-output` / `verify-frontend-output`), committed, and
 reviewed clean — zero P0/P1 findings from the `slice-review` skill, which
-drives Claude's built-in `code-review` once per touched partition.
+drives `mattpocock-skills:code-review` against `docs/CODING_STANDARDS.md`
+and the slice's sub-issue.
 
 ## 1. Resolve the issue set
 
@@ -134,9 +135,10 @@ Three sub-gates, in order, all on the slice's own branch:
    it carries the Conventional Commits style rules; give it the sub-issue
    number for scope. The slice's diff must be fully committed before review.
 3. **Review.** Spawn a fresh agent instructed to invoke the `slice-review`
-   skill on the current stack branch and return its report — it runs the
-   built-in `code-review` across every partition and lens defined by
-   `slice-review`. The gate is its verdict: **zero
+   skill on the current stack branch and return its report — it runs
+   `mattpocock-skills:code-review` over the slice diff, with the rules in
+   `docs/CODING_STANDARDS.md` as its Standards source and the sub-issue as
+   its Spec source. The gate is its verdict: **zero
    P0/P1 findings**. P2/P3 go in the final report as advisory notes.
 
 On findings from either verify or review:

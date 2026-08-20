@@ -1,122 +1,92 @@
 ---
 name: slice-review
 description: |
-  Review gate for one stack slice: runs Claude's built-in code-review skill
-  once per touched partition with that partition's diff and its bug-hunting
-  lens, then maps findings to a P0–P3 verdict. Use when a task-orchestrator
-  gate names it or when asked to gate-review a slice or stack branch. Pass =
-  zero P0/P1.
+  Review gate for one stack slice: runs the `mattpocock-skills:code-review`
+  skill over the slice diff against `docs/CODING_STANDARDS.md` and the
+  slice's sub-issue, then maps its two-axis findings to a P0–P3 verdict.
+  Use when a task-orchestrator gate names it or when asked to gate-review a
+  slice or stack branch. Pass = zero P0/P1.
 ---
 
 # Slice review
 
-Gate one slice by driving Claude's `code-review` skill per partition — never a
-hand-rolled review of your own. Your job is scoping, context, and the
-verdict: **pass = zero P0/P1 findings**. You review and report — fixes are
-dispatched by the caller, never applied here.
+Gate one slice by driving the **`mattpocock-skills:code-review`** skill — the
+plugin skill, not Claude's built-in `code-review`, and never a hand-rolled
+review of your own. Your job is scoping, context, and the verdict: **pass =
+zero P0/P1 findings**. You review and report — fixes are dispatched by the
+caller, never applied here.
+
+Name the skill fully qualified (`mattpocock-skills:code-review`) every time
+you invoke it. The unqualified name `code-review` resolves to Claude's
+built-in bug-hunting review, which is a different skill with a different
+output shape and is not this gate.
 
 ## 1. Scope the slice
 
-The diff is the current stack branch against its base: `gh stack view
---json` names the branch below (trunk `main` for the bottom branch), then
-`git diff --stat <base>...HEAD` (git on the host) lists the slice's files.
-Partition them as `apps/api`, `apps/web`,
-`packages/api-contract`, other. Acceptance criteria are the verify gate's
-job — this gate hunts real bugs in the code itself.
+The diff is the current stack branch against its base: `gh stack view --json`
+names the branch below (trunk `main` for the bottom branch). That base is the
+**fixed point** the review skill requires. Confirm it resolves (`git rev-parse
+<base>`) and that `git diff --stat <base>...HEAD` is non-empty before invoking
+anything — a bad ref must fail here, in front of you, not inside two
+sub-agents.
+
+Note the touched partitions (`apps/api`, `apps/web`,
+`packages/api-contract`, other) from that `--stat` output: you need them to
+group the report in step 3, not to split the review.
+
+The review is three-dot and commit-based, so **uncommitted work is invisible
+to it**. If `git status --porcelain` is dirty, stop and report that the slice
+is not fully committed — do not review a partial diff.
 
 Generated files (`apps/api/internal/httpapi/gen.go`, generated TS in
-`packages/api-contract`) are checked by you directly, not sent to review:
-any hand edit to generated code is a P0.
+`packages/api-contract`) are checked by you directly, not sent to review: any
+hand edit to generated code is a P0 (`GEN-1`).
 
-## 2. One code-review invocation per touched partition
+## 2. One `mattpocock-skills:code-review` invocation per slice
 
-For each touched partition, invoke the built-in `code-review` skill with the
-slice's diff range scoped to that partition's path as the target, at `high`
-effort, and include in the invocation the partition's lens so the reviewer
-reads the diff with this repo's rules in hand:
+Invoke it **once** for the whole slice — its axes split by concern, not by
+path, and the per-partition rules live in the standards doc where both axes
+can read them. Pass:
 
-**`apps/api` lens (Go anti-patterns).** Hunt the bugs Go makes easy:
-
-- Unsynchronized shared state — map writes or struct mutation reached from
-  multiple request goroutines without a mutex; locks taken for reads but
-  not writes; copying a struct that contains a mutex.
-- Goroutine and resource leaks — goroutines with no exit path, tickers and
-  timers never stopped, response/request bodies never closed, `defer`
-  accumulating inside a loop.
-- Error handling — ignored error returns, `err` shadowed by `:=` so the
-  outer check tests the wrong variable, errors swallowed and turned into
-  zero values, panics reachable from request input (nil map write, nil
-  deref, out-of-range index, unchecked type assertion).
-- Loop and closure traps — goroutine or closure capturing the loop
-  variable, appending to a slice while ranging it, mutating a map during
-  iteration.
-- HTTP handler traps — writing to the ResponseWriter after the status was
-  sent, missing `return` after an error response so the success path also
-  runs, ignoring `r.Context()` cancellation on slow work.
-- Concurrency ordering — data published between goroutines without
-  channel/mutex/atomic, `sync.WaitGroup.Add` inside the spawned goroutine,
-  `time.Sleep` as synchronization.
-
-**`apps/web` lens (React anti-patterns).** Hunt the bugs React makes easy:
-
-- Effect misuse — missing or wrong dependency arrays, effects that
-  re-derive state a render could compute, subscriptions/timeouts/listeners
-  without cleanup, fetch-in-effect races where a stale response overwrites
-  a newer one (no abort or staleness guard).
-- Stale closures — callbacks or intervals capturing old state, setState
-  based on current value instead of the updater form where updates can
-  batch or race.
-- Render correctness — state mutated in place instead of replaced,
-  conditional or loop-nested hook calls, unstable `key`s (array index on
-  reorderable lists), objects/functions recreated per render and fed to
-  memoized children or effect deps causing loops.
-- Async UI races — awaited results applied without checking the component
-  or query is still current, double-submit on unguarded async handlers,
-  loading/error flags that can deadlock (never reset on failure paths).
-- Type safety escapes — `any`, non-null assertions, and `as`-casting
-  network data; unchecked array indexing rendered directly.
-
-**`packages/api-contract` lens.** Spec change and regenerated output land
-together; a no-op regen must produce no diff. Breaking contract changes
-are named as such.
-
-**`other` lens (tooling and process).** Hunt failures at the seams outside the
-product partitions:
-
-- Shell lifecycle — each background process has an owned PID, readiness proves
-  that exact process and endpoint, traps cover every exit path, and cleanup
-  cannot kill an unrelated process or leak a helper.
-- Exit aggregation — every component failure reaches the final exit code,
-  expected nonzero probes are isolated deliberately, and report assembly fails
-  closed without erasing the earlier component verdicts.
-- Node schema validation — shared response validators enforce the complete
-  contract shape and formats, malformed JSON and wrong container types fail
-  closed, and numeric/status values are range-checked rather than coerced.
-- Turbo and devcontainer wiring — task dependencies, cache settings, package
-  scripts, pinned binaries, and container-only commands agree from package to
-  root without hidden host-tool assumptions.
-- Agent documentation — orchestration delegates partitioning and review lenses
-  to this skill, terminology and pass criteria agree across skills, and copied
-  coverage lists cannot drift.
+- **Fixed point:** the base branch from step 1.
+- **Standards source:** `docs/CODING_STANDARDS.md`. It is canonical and it
+  overrides the skill's built-in Fowler smell baseline wherever the two
+  disagree. Its `GO-*`, `WEB-*`, `GEN-*`, `TOOL-*` rules are this repo's
+  partition lenses — keep them there, never restate them in this file, or the
+  two copies drift (`TOOL-5`).
+- **Spec source:** the slice's sub-issue (`gh issue view <n>`). With no
+  sub-issue, say so and let the Spec axis report "no spec available" rather
+  than inferring requirements from the code.
+- **Guard, appended to both sub-agent briefs verbatim:** "Do not invoke
+  `/code-review` or spawn additional agents; perform this review directly."
+  Without it a sub-agent can rediscover the skill and fan out — a known bug in
+  the shipped skill.
 
 ## 3. Map findings to the verdict
 
-Collect every finding from the per-partition reviews plus your generated-code
-check, and classify:
+The skill returns two blocks, `## Standards` and `## Spec`. Do not rerank
+across them — classify each finding on its own:
 
-- **P0** — corrupts or loses data, crashes or hangs the process, data
-  race, deadlock, hand-edited generated code.
-- **P1** — likely bug under real conditions: leak, stale-state race, UI
-  race or render loop, swallowed error changing behavior, panic reachable
-  from input.
-- **P2** — robustness gap or anti-pattern not yet biting.
+- **P0** — corrupts or loses data, crashes or hangs the process, data race,
+  deadlock, hand-edited generated code. Spec side: a required behaviour is
+  absent, not merely partial.
+- **P1** — a **hard** rule in `docs/CODING_STANDARDS.md` breached, or a likely
+  bug under real conditions: leak, stale-state race, UI race or render loop,
+  swallowed error changing behavior, panic reachable from input. Spec side: a
+  requirement implemented wrongly.
+- **P2** — a **judgement** rule or a named smell; a robustness gap not yet
+  biting. Spec side: scope creep, or a partial requirement whose gap is
+  cosmetic.
 - **P3** — nit.
 
-Before reporting, re-check each P0/P1 against the actual slice diff — a
-finding that assumes code outside the slice behaves differently than it
-does gets downgraded or dropped.
+A Standards finding with no cited rule and no named smell, or a Spec finding
+that quotes no line of the sub-issue, is not evidence — drop it or demote it
+to P3. Sub-agent output is a hypothesis: before reporting, re-check each
+P0/P1 against the actual slice diff, and downgrade or drop any finding that
+assumes code outside the slice behaves differently than it does.
 
-Report: verdict first (**pass** or **fail** with the P0/P1 count), then
-findings grouped by partition, most severe first, each with `file:line`, the
-claim, and the failure scenario. P2/P3 are advisory — the caller decides;
-they never block the gate.
+Report: verdict first (**pass** or **fail** with the P0/P1 count), then the
+two axes under their own headings, findings grouped by partition within each,
+most severe first, each with `file:line`, the cited rule or smell, and the
+failure scenario. P2/P3 are advisory — the caller decides; they never block
+the gate.

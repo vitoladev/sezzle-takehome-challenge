@@ -14,7 +14,9 @@ tasks, use judgment.
 > This file is canonical. The executor agents
 > (`.claude/agents/backend-executor.md`, `frontend-executor.md`) carry a
 > condensed copy adapted for unattended runs — when editing a rule here,
-> update their "Coding rules" sections to match.
+> update their "Coding rules" sections to match. `docs/CODING_STANDARDS.md`
+> restates these rules as numbered, citable entries for review — edit it in
+> the same change.
 
 ## 1. Think Before Coding
 

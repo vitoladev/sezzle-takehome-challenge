@@ -30,3 +30,8 @@ RUN npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium \
 RUN GOBIN=/usr/local/bin GOPATH=/tmp/build-gopath GOCACHE=/tmp/build-gocache \
        go install github.com/air-verse/air@latest \
     && rm -rf /tmp/build-gopath /tmp/build-gocache
+
+# Bind-mounted repos (and linked worktrees' host-path .git mounts) trip git's
+# dubious-ownership check in some invocation contexts (e.g. go's VCS stamping
+# under turbo); the container is a single-user sandbox, so trust everything.
+RUN git config --system --add safe.directory '*'
