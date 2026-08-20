@@ -61,11 +61,15 @@ _Avoid_: NaN, invalid, impossible, error
 **Session**:
 The scope that owns one History, isolating one caller's Calculations from
 every other caller's. A Session carries no identity beyond that separation:
-there is no user behind it, no login, and nothing to authenticate.
+there is no user behind it, no login, and nothing to authenticate. Sessions are
+bounded too: once the bound is reached the least recently used Session is
+discarded whole, and its History goes with it.
 _Avoid_: User, account, client, visitor, tenant
 
 **History**:
 The Calculations a Session has performed, newest first, and bounded — the
-oldest is discarded once the bound is reached. History is a convenience, not a
-ledger: it is never edited, and losing it loses nothing but convenience.
+oldest is discarded once the bound is reached, and the whole History is
+discarded when its Session is the least recently used one evicted. History is a
+convenience, not a ledger: it is never edited, it does not survive a restart,
+and losing it loses nothing but convenience.
 _Avoid_: Log, ledger, audit trail, tape, journal

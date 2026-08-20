@@ -29,3 +29,9 @@ test('a half-typed value is enterable but not yet a complete Operand', () => {
   expect(isEnterable('1e5')).toBe(false)
   expect(isEnterable('+1')).toBe(false)
 })
+
+test('an action that is not an edit leaves the Operand exactly as it was', () => {
+  expect(applyEntry('12', { kind: 'clear' })).toBe('12')
+  expect(applyEntry('12', { kind: 'submit' })).toBe('12')
+  expect(applyEntry('12', { kind: 'operation', operation: 'sqrt' })).toBe('12')
+})

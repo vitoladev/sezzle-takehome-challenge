@@ -1,0 +1,35 @@
+# The Go side of a pull request. Separate from frontend.yml so a Go failure and
+# a browser failure are distinguishable in the checks list without opening
+# either. No `branches:` filter: every PR in a stack is based on the branch
+# below it, and a filter pinned to main would skip all of them.
+name: backend
+
+on: pull_request
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+# CI is the one place the devcontainer is not used: it pins its own toolchain
+# instead, from the same go.mod the container builds against.
+jobs:
+  go:
+    name: vet, race tests, coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - name: Vet
+        working-directory: apps/api
+        run: go vet ./...
+
+      # Runs `go test -race -coverprofile` and fails below 90% of hand-written
+      # statements. The script owns both so the exclusions and the threshold
+      # are not stated twice; `pnpm --filter api test:coverage` runs the same.
+      - name: Race tests and coverage gate
+        run: apps/api/scripts/coverage-gate.sh

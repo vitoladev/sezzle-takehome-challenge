@@ -52,3 +52,7 @@ never the unqualified `code-review`, which is Claude's built-in bug hunter.
 All toolchain commands (pnpm, turbo, go, node) run inside a per-worktree
 devcontainer, never on the host; git runs on the host. Use the `devcontainer`
 skill for the setup, exec, and teardown workflow.
+
+This governs local work. GitHub Actions is the one exception: the workflows in
+`.github/workflows/` pin their own Go and pnpm on `ubuntu-latest` rather than
+building the container.
