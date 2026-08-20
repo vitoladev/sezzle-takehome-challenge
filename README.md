@@ -7,7 +7,9 @@ Result says whether it is exact.
 
 - **`apps/web`** — Vite + React (TypeScript). Keypad entry with arity-aware
   Operand fields, an Exactness indicator, and a History panel. Dev server on
-  `:5173`, proxying `/api/*` to the backend.
+  `:5173`, proxying `/api/*` to the backend. Its layout — features by bounded
+  context, shared `ui/`, `api/` and `utils/` — is in
+  [apps/web/README.md](apps/web/README.md).
 - **`apps/api`** — Go HTTP server on `:8080`, serving the API under `/api/*`.
   Arbitrary-precision decimal arithmetic, contract validation at the edge, and
   an in-memory History per Session.

@@ -1,5 +1,5 @@
-import type { KeypadAction } from './entry.ts'
-import { OPERATIONS, OPERATION_ORDER, type Operation } from './operations.ts'
+import type { KeypadAction } from '../model/entry.ts'
+import { OPERATIONS, OPERATION_ORDER, type Operation } from '../model/operations.ts'
 
 const DIGIT_ROWS = [
   ['7', '8', '9'],

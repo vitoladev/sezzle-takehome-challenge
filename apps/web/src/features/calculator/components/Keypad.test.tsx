@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { KeypadAction } from './entry.ts'
+import type { KeypadAction } from '../model/entry.ts'
 import { Keypad } from './Keypad.tsx'
 
 async function mount({ canSubmit = true, pending = false } = {}) {

@@ -1,15 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { postCalculation, type CalculationRequest } from '../api/client.ts'
-import { HistoryPanel } from '../history/HistoryPanel.tsx'
-import { historyQueryKey } from '../history/useHistory.ts'
-import { useSessionId } from '../session/useSessionId.ts'
-import { ErrorNotice } from './ErrorNotice.tsx'
-import { Keypad } from './Keypad.tsx'
-import { OperandFields } from './OperandFields.tsx'
-import { ResultDisplay } from './ResultDisplay.tsx'
-import { applyEntry, isCompleteOperand, type KeypadAction } from './entry.ts'
-import { actionForKey } from './keyboard.ts'
+import { postCalculation, type CalculationRequest } from '@/api/client.ts'
+import { historyQueryKey } from '@/api/keys.ts'
+import { HistoryPanel } from '@/features/history/components/HistoryPanel.tsx'
+import { useSessionId } from '@/features/session/hooks/useSessionId.ts'
+import { ErrorNotice } from '../components/ErrorNotice.tsx'
+import { Keypad } from '../components/Keypad.tsx'
+import { OperandFields } from '../components/OperandFields.tsx'
+import { ResultDisplay } from '../components/ResultDisplay.tsx'
+import { applyEntry, isCompleteOperand, type KeypadAction } from '../model/entry.ts'
+import { actionForKey } from '../model/keyboard.ts'
 import {
   EMPTY_OPERANDS,
   OPERATIONS,
@@ -18,7 +18,7 @@ import {
   type OperandRole,
   type OperandValues,
   type Operation,
-} from './operations.ts'
+} from '../model/operations.ts'
 
 export function Calculator() {
   const sessionId = useSessionId()

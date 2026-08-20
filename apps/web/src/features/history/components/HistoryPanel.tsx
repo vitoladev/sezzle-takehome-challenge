@@ -1,6 +1,7 @@
-import { describeError } from '../calculator/ErrorNotice.tsx'
+import { RetryButton } from '@/ui/RetryButton.tsx'
+import { describeError } from '@/utils/describeError.ts'
+import { useHistory } from '../hooks/useHistory.ts'
 import { HistoryRow } from './HistoryRow.tsx'
-import { useHistory } from './useHistory.ts'
 
 /**
  * Mirrors `MaxItems` in apps/api/internal/store/store.go: History is bounded in
@@ -45,15 +46,11 @@ export function HistoryPanel({
           <p className="notice-message" data-testid="history-error-message">
             {describeError(error).message}
           </p>
-          <button
-            className="key"
-            type="button"
-            data-testid="history-retry"
-            disabled={isFetching}
+          <RetryButton
             onClick={() => void refetch()}
-          >
-            Try again
-          </button>
+            disabled={isFetching}
+            testId="history-retry"
+          />
         </div>
       )}
 
