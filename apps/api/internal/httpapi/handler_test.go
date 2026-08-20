@@ -191,11 +191,18 @@ func TestSpecValidationRejectsBeforeAnyHandlerRuns(t *testing.T) {
 	}{
 		{"sqrt with two Operands has no variant", sessionA, `{"operation":"sqrt","left":"1","right":"2"}`},
 		{"an unknown Operation is not in the enum", sessionA, `{"operation":"cube","left":"1","right":"2"}`},
+		// The rejection can only have come from the spec: 1e10 parses as a decimal,
+		// so a handler that ran would have answered 200 rather than 400.
 		{"an Operand in exponent notation is not a decimal string", sessionA, `{"operation":"add","left":"1e10","right":"2"}`},
 		{"an Operand past maxLength", sessionA, `{"operation":"add","left":"` + strings.Repeat("9", 51) + `","right":"2"}`},
 		{"an unknown property", sessionA, `{"operation":"add","left":"1","right":"2","rounding":"up"}`},
 		{"a missing Operand", sessionA, `{"operation":"add","left":"1"}`},
+		{"a missing Operation names no variant", sessionA, `{"left":"1","right":"2"}`},
+		{"an Operand that is null", sessionA, `{"operation":"add","left":null,"right":"2"}`},
+		{"an Operand that is a number, not a decimal string", sessionA, `{"operation":"add","left":1,"right":"2"}`},
 		{"a body that is not JSON", sessionA, `not json`},
+		{"an empty body", sessionA, ``},
+		{"an array where an object belongs", sessionA, `[{"operation":"add","left":"1","right":"2"}]`},
 		{"a missing Session", "", `{"operation":"add","left":"1","right":"2"}`},
 		{"a Session that is not a UUID", "not-a-uuid", `{"operation":"add","left":"1","right":"2"}`},
 	}
@@ -214,6 +221,37 @@ func TestSpecValidationRejectsBeforeAnyHandlerRuns(t *testing.T) {
 			}
 		})
 	}
+}
+
+// The other side of the maxLength bound the table above probes from past it: an
+// Operand of exactly 50 characters is admitted, so the bound is 50 rather than
+// somewhere below 51.
+func TestSpecValidationAdmitsAnOperandAtMaxLength(t *testing.T) {
+	operand := strings.Repeat("9", 50)
+
+	rec := post(t, newTestHandler(t), sessionA, `{"operation":"add","left":"`+operand+`","right":"0"}`)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body %s", rec.Code, rec.Body.String())
+	}
+	if body := decode[Calculation](t, rec); body.Result != operand {
+		t.Fatalf("result = %q, want %q", body.Result, operand)
+	}
+}
+
+// A blank value is neither an absent header nor a UUID, so the required
+// parameter has to be judged on what it carries and not on its presence.
+func TestSpecValidationRejectsABlankSessionHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/calculations", strings.NewReader(`{"operation":"add","left":"1","right":"2"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Session-Id", "")
+	rec := httptest.NewRecorder()
+	newTestHandler(t).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400; body %s", rec.Code, rec.Body.String())
+	}
+	assertError(t, rec, InvalidRequest)
 }
 
 // A rejection about one Operand names it; a rejection about the shape of the
@@ -458,8 +496,12 @@ func assertError(t *testing.T, rec *httptest.ResponseRecorder, want ErrorCode) E
 	if body.Message == "" {
 		t.Fatal("message is empty; every failure explains itself")
 	}
-	if strings.Contains(body.Message, "openapi") || strings.Contains(body.Message, "schema") {
-		t.Fatalf("message = %q leaks validator internals", body.Message)
+	// The whole body, not just the message: nothing kin-openapi says about its
+	// schema walk may reach a client under any key.
+	for _, jargon := range []string{"openapi", "schema", "json:", "cannot unmarshal"} {
+		if strings.Contains(rec.Body.String(), jargon) {
+			t.Fatalf("body %s leaks validator internals (%q)", rec.Body.String(), jargon)
+		}
 	}
 	return body
 }
