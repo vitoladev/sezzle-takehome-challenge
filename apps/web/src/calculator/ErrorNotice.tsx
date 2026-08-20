@@ -6,6 +6,13 @@ const NO_RESPONSE = {
   message: 'The API did not answer. Check that the server is running, then try again.',
 }
 
+/** The code and message to render for a rejection, whoever caught it. */
+export function describeError(error: unknown): { code: string; message: string } {
+  return error instanceof ApiFailure
+    ? { code: error.body.error, message: error.body.message }
+    : NO_RESPONSE
+}
+
 export function ErrorNotice({
   error,
   onRetry,
@@ -15,9 +22,7 @@ export function ErrorNotice({
   onRetry: () => void
   retryDisabled: boolean
 }) {
-  const { code, message } = error instanceof ApiFailure
-    ? { code: error.body.error, message: error.body.message }
-    : NO_RESPONSE
+  const { code, message } = describeError(error)
 
   return (
     <div className="notice" data-testid="error" data-error-code={code} role="alert">

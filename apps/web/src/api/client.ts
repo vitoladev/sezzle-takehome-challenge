@@ -31,3 +31,12 @@ export async function postCalculation(body: CalculationRequest): Promise<Calcula
   if (error) throw new ApiFailure(error)
   return data
 }
+
+/** The Session's History, newest first — `[]` when it holds no Calculation. */
+export async function getCalculations(): Promise<Calculation[]> {
+  const { data, error } = await api.GET('/calculations', {
+    params: { header: { 'X-Session-Id': getSessionId() } },
+  })
+  if (error) throw new ApiFailure(error)
+  return data
+}

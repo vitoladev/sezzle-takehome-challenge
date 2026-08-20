@@ -669,6 +669,67 @@ test.describe('Keypad and keyboard (requirement 1)', () => {
     expectClean(w)
   })
 
+  test('Enter on a focused Try again retries the refused Calculation, not the fields', async ({
+    page,
+  }) => {
+    const w = watch(page)
+    await open(page)
+    await compute(page, 'divide', { left: '1', right: '0' })
+    await expect(page.getByTestId('error-code')).toHaveText('division_by_zero')
+    expect(w.posts.length).toBe(1)
+
+    // Editing an Operand first makes the two readings of `Enter` tell apart: a
+    // retry re-sends the refused body, a stolen `Enter` would send this one.
+    await setOperand(page, 'right', '2')
+    const retry = page.getByTestId('retry')
+    await retry.focus()
+    await expect(retry).toBeFocused()
+    const [retried] = await Promise.all([
+      page.waitForResponse((r) => isCalcPost(r.request())),
+      page.keyboard.press('Enter'),
+    ])
+
+    expect(
+      JSON.parse(retried.request().postData() ?? '{}'),
+      'Try again re-sends what failed',
+    ).toEqual({ operation: 'divide', left: '1', right: '0' })
+    expect(w.posts.length).toBe(2)
+    // The browser logs its refusal a beat after the response itself lands.
+    await expect.poll(() => w.consoleErrors.filter((e) => HTTP_REFUSAL.test(e)).length).toBe(2)
+    expectClean(w, 2)
+  })
+
+  test('a focused button keeps Enter and Space, while Escape and Backspace stay global', async ({
+    page,
+  }) => {
+    const w = watch(page)
+    await open(page)
+    await setOperand(page, 'left', '2')
+    await setOperand(page, 'right', '3')
+
+    const equals = page.getByTestId('key-equals')
+    await equals.focus()
+    await expect(equals).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('result-value')).toHaveText('5')
+    expect(w.posts.length, 'POSTs from Enter on the focused = key').toBe(1)
+
+    const multiply = page.getByTestId('op-multiply')
+    await multiply.focus()
+    await page.keyboard.press('Space')
+    await expect(page.getByTestId('operation-name')).toHaveText('multiply')
+
+    await expect(multiply).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('operand-left')).toHaveValue('')
+    await page.keyboard.type('55')
+    await expect(page.getByTestId('operand-left')).toHaveValue('55')
+    await page.keyboard.press('Backspace')
+    await expect(page.getByTestId('operand-left')).toHaveValue('5')
+    expect(w.posts.length).toBe(1)
+    expectClean(w)
+  })
+
   test('the keypad keys cover digits, decimal, sign, delete and clear', async ({ page }) => {
     const w = watch(page)
     await open(page)

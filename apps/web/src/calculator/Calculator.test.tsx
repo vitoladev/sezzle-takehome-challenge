@@ -4,6 +4,7 @@ import { beforeAll, expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 
 const posts: string[] = []
+const historyReads: string[] = []
 let unsettled: Array<() => void> = []
 
 function jsonResponse(body: unknown): Response {
@@ -16,7 +17,11 @@ function jsonResponse(body: unknown): Response {
 /** Answers every POST only when the test says so, so a Calculation can be held in flight. */
 vi.stubGlobal('fetch', (input: Request | string | URL, init?: RequestInit): Promise<Response> => {
   const request = input instanceof Request ? input : new Request(input, init)
-  if (request.method !== 'POST') return Promise.resolve(jsonResponse({ status: 'ok' }))
+  if (request.method !== 'POST') {
+    if (!request.url.includes('/calculations')) return Promise.resolve(jsonResponse({ status: 'ok' }))
+    historyReads.push(request.url)
+    return Promise.resolve(jsonResponse([]))
+  }
 
   posts.push(request.url)
   return new Promise<Response>((resolve) => {
@@ -68,4 +73,23 @@ test('clearing a Calculation in flight leaves `=` able to issue the next one', a
   await vi.waitFor(() => expect(posts).toHaveLength(2))
 
   settleEverythingInFlight()
+})
+
+test('a Calculation cleared in flight still refreshes History when it succeeds', async () => {
+  const screen = await mount()
+  await vi.waitFor(() => expect(historyReads.length).toBeGreaterThan(0))
+  const before = historyReads.length
+  const posted = posts.length
+
+  await screen.getByTestId('operand-left').fill('1')
+  await screen.getByTestId('operand-right').fill('2')
+  await screen.getByTestId('key-equals').click()
+  await vi.waitFor(() => expect(posts).toHaveLength(posted + 1))
+
+  // `reset()` detaches the observer, so only a mutation-level `onSuccess` can
+  // still invalidate the History this Calculation is already part of.
+  await screen.getByTestId('key-clear').click()
+  settleEverythingInFlight()
+
+  await vi.waitFor(() => expect(historyReads.length).toBeGreaterThan(before))
 })

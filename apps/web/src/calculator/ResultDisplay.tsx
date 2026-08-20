@@ -1,12 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Calculation } from '../api/client.ts'
-
-/**
- * Precision — how many significant digits an inexact Result keeps. Mirrors
- * `Precision` in apps/api/internal/calc/calc.go; the contract carries no field
- * for it, so the tooltip names it from here.
- */
-const PRECISION = 28
+import { InexactMarker } from './InexactMarker.tsx'
 
 /** Past this length a Result gets its own scrolling well and a digit count. */
 const LONG_RESULT = 40
@@ -52,15 +46,7 @@ export function ResultDisplay({
 
   return (
     <Row state="ready" exact={calculation.exact}>
-      {!calculation.exact && (
-        <span
-          className="marker"
-          data-testid="result-inexact-marker"
-          title={`Inexact: the Result keeps ${PRECISION} significant digits (Precision); the true value has more.`}
-        >
-          ≈
-        </span>
-      )}
+      {!calculation.exact && <InexactMarker testId="result-inexact-marker" />}
       <output className={long ? 'readout readout--long' : 'readout'} data-testid="result-value">
         {calculation.result}
       </output>

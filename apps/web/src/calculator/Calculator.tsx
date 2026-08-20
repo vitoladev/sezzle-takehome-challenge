@@ -1,6 +1,8 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { postCalculation, type CalculationRequest } from '../api/client.ts'
+import { HistoryPanel } from '../history/HistoryPanel.tsx'
+import { historyQueryKey } from '../history/useHistory.ts'
 import { useSessionId } from '../session/useSessionId.ts'
 import { ErrorNotice } from './ErrorNotice.tsx'
 import { Keypad } from './Keypad.tsx'
@@ -14,17 +16,26 @@ import {
   buildRequest,
   entryRoleFor,
   type OperandRole,
+  type OperandValues,
   type Operation,
 } from './operations.ts'
 
 export function Calculator() {
   const sessionId = useSessionId()
+  const queryClient = useQueryClient()
   const [operation, setOperation] = useState<Operation>('add')
   const [operands, setOperands] = useState(EMPTY_OPERANDS)
   const [activeRole, setActiveRole] = useState<OperandRole>('left')
 
   const { data, error, isError, isPending, mutate, reset, variables } = useMutation({
     mutationFn: postCalculation,
+    // Deliberately a mutation option rather than a per-call one: `reset()`
+    // detaches the observer, so a Calculation cleared while in flight would
+    // never invalidate the History the server has already recorded it in.
+    // The double-submit guard below needs the opposite and stays per-call.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: historyQueryKey(sessionId) })
+    },
   })
 
   const roles = OPERATIONS[operation].roles
@@ -44,6 +55,17 @@ export function Calculator() {
       })
     },
     [mutate],
+  )
+
+  /** Carries a Result out of History into the next Calculation's first Operand. */
+  const carryResult = useCallback(
+    (result: string) => {
+      const role = OPERATIONS[operation].roles[0]
+      const next: OperandValues = { ...operands, [role]: result }
+      setOperands(next)
+      setActiveRole(entryRoleFor(operation, next, role))
+    },
+    [operands, operation],
   )
 
   const handleAction = useCallback(
@@ -89,6 +111,11 @@ export function Calculator() {
       const edits = action.kind === 'digit' || action.kind === 'decimal' || action.kind === 'delete'
       if (editing && edits) return
 
+      // `Enter` is a focused button's own activation key: stealing it would run
+      // the keypad's submit instead of the button's click — recording a second
+      // Calculation where the user asked to carry a Result or retry a refusal.
+      if (event.key === 'Enter' && event.target instanceof HTMLButtonElement) return
+
       event.preventDefault()
       handleAction(action)
     }
@@ -98,38 +125,47 @@ export function Calculator() {
   }, [handleAction])
 
   return (
-    <section className="ticket" aria-label="Calculator">
-      <div className="ticket-caption">
-        <span data-testid="operation-name">{operation}</span>
-        <span
-          data-testid="session-tag"
-          title="This tab's Session. Its History is separate from every other tab's."
-        >
-          session {sessionId.slice(0, 8)}
-        </span>
-      </div>
+    <div className="workbench">
+      <section className="ticket" aria-label="Calculator">
+        <div className="ticket-caption">
+          <span data-testid="operation-name">{operation}</span>
+          <span
+            data-testid="session-tag"
+            title="This tab's Session. Its History is separate from every other tab's."
+          >
+            session {sessionId.slice(0, 8)}
+          </span>
+        </div>
 
-      <OperandFields
-        operation={operation}
-        operands={operands}
-        activeRole={activeRole}
-        onActivate={setActiveRole}
-        onChange={(role, value) => setOperands((current) => ({ ...current, [role]: value }))}
-      />
-
-      <ResultDisplay calculation={data} pending={isPending} failed={isError} />
-
-      {isError && (
-        <ErrorNotice
-          error={error}
-          retryDisabled={isPending}
-          onRetry={() => {
-            if (variables) submit(variables)
-          }}
+        <OperandFields
+          operation={operation}
+          operands={operands}
+          activeRole={activeRole}
+          onActivate={setActiveRole}
+          onChange={(role, value) => setOperands((current) => ({ ...current, [role]: value }))}
         />
-      )}
 
-      <Keypad operation={operation} canSubmit={ready} pending={isPending} onAction={handleAction} />
-    </section>
+        <ResultDisplay calculation={data} pending={isPending} failed={isError} />
+
+        {isError && (
+          <ErrorNotice
+            error={error}
+            retryDisabled={isPending}
+            onRetry={() => {
+              if (variables) submit(variables)
+            }}
+          />
+        )}
+
+        <Keypad
+          operation={operation}
+          canSubmit={ready}
+          pending={isPending}
+          onAction={handleAction}
+        />
+      </section>
+
+      <HistoryPanel sessionId={sessionId} onUseResult={carryResult} />
+    </div>
   )
 }
