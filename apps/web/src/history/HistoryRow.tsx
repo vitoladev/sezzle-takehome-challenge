@@ -1,10 +1,8 @@
 import type { Calculation } from '../api/client.ts'
 import { InexactMarker } from '../calculator/InexactMarker.tsx'
+import { LONG_RESULT } from '../calculator/ResultDisplay.tsx'
 import { isCompleteOperand } from '../calculator/entry.ts'
 import { OPERATIONS } from '../calculator/operations.ts'
-
-/** Past this length a Result is clamped to a few lines and reports its digits. */
-const LONG_RESULT = 40
 
 const count = new Intl.NumberFormat()
 

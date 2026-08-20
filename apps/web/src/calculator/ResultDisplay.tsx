@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import type { Calculation } from '../api/client.ts'
 import { InexactMarker } from './InexactMarker.tsx'
 
-/** Past this length a Result gets its own scrolling well and a digit count. */
-const LONG_RESULT = 40
+/** Past this length a Result is rendered long-form, with a digit count. */
+export const LONG_RESULT = 40
 
 const count = new Intl.NumberFormat()
 

@@ -397,8 +397,6 @@ async function seed(request: APIRequestContext, sessionId: string, count: number
   }
 }
 
-// ─────────── Promoted from the independent verification run (#6) ───────────
-
 test('a Calculation the server never recorded never reaches the panel', async ({ page }) => {
   const w = watch(page)
   // The spec answers the POST itself, so the real server records nothing and

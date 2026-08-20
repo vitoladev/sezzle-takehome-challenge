@@ -6,7 +6,6 @@ const NO_RESPONSE = {
   message: 'The API did not answer. Check that the server is running, then try again.',
 }
 
-/** The code and message to render for a rejection, whoever caught it. */
 export function describeError(error: unknown): { code: string; message: string } {
   return error instanceof ApiFailure
     ? { code: error.body.error, message: error.body.message }

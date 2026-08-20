@@ -5,11 +5,7 @@
  */
 const PRECISION = 28
 
-/**
- * The one inexactness marker in the interface: wherever a Result is rendered —
- * the readout or a History row — a rounded one wears this and never reads as
- * exact.
- */
+/** The one inexactness marker in the interface. */
 export function InexactMarker({ testId }: { testId: string }) {
   return (
     <span
