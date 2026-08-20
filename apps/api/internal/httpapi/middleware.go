@@ -41,9 +41,11 @@ const statusClientClosedRequest = 499
 //
 // The nesting is load-bearing, outermost first: WithLogging so every request
 // leaves an access-log line whatever rejects it; WithRecover outside both of
-// the below so a panic in either still answers in the contract's Error shape;
-// WithCORS ahead of validation because a preflight is not in the spec, so
-// validation reaching it first would reject it as an undefined route.
+// the below so a panic in either still answers in the contract's Error shape —
+// structural, and pinned by a test for the handler path only, since making
+// kin-openapi panic on demand takes a contrivance; WithCORS ahead of validation
+// because a preflight is not in the spec, so validation reaching it first would
+// reject it as an undefined route.
 func NewHandler(logger *slog.Logger, history store.Store[Calculation]) (http.Handler, error) {
 	mux := http.NewServeMux()
 	HandlerWithOptions(NewServer(logger, history), StdHTTPServerOptions{

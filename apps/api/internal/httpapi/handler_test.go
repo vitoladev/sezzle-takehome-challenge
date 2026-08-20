@@ -34,8 +34,6 @@ func newLoggedTestHandler(t *testing.T, logs io.Writer) http.Handler {
 	return newStoreTestHandler(t, logs, store.NewMemory[Calculation]())
 }
 
-// Every test drives the handler main serves, so a change to the chain cannot
-// leave the tests asserting the old one.
 func newStoreTestHandler(t *testing.T, logs io.Writer, history store.Store[Calculation]) http.Handler {
 	t.Helper()
 	handler, err := NewHandler(slog.New(slog.NewTextHandler(logs, nil)), history)
@@ -386,8 +384,9 @@ func (panickingStore) List(uuid.UUID) []Calculation {
 	panic("the panic no probe found")
 }
 
-// Pins WithRecover outside the rest of the chain: a panic raised at the mux is
-// still answered, and answered in the contract's shape.
+// Pins WithRecover above the mux: a panic raised in a handler is still answered,
+// and answered in the contract's shape. The validator path is nested the same
+// way but is not probed here — see NewHandler.
 func TestRecoverAnswersAPanicWithTheContractsErrorShape(t *testing.T) {
 	handler := newStoreTestHandler(t, io.Discard, panickingStore{})
 
@@ -400,8 +399,7 @@ func TestRecoverAnswersAPanicWithTheContractsErrorShape(t *testing.T) {
 }
 
 // The header the frontend sends must survive a cross-origin preflight. Pins
-// WithCORS ahead of spec validation: a preflight is not in the spec, so
-// validation reaching it first would reject it as an undefined route.
+// WithCORS ahead of spec validation, for the reason NewHandler gives.
 func TestPreflightAdvertisesTheSessionHeader(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTestHandler(t).ServeHTTP(rec, httptest.NewRequest(http.MethodOptions, "/api/calculations", nil))
@@ -411,6 +409,25 @@ func TestPreflightAdvertisesTheSessionHeader(t *testing.T) {
 	}
 	if allowed := rec.Header().Get("Access-Control-Allow-Headers"); !strings.Contains(allowed, "X-Session-Id") {
 		t.Fatalf("Access-Control-Allow-Headers = %q, want it to include X-Session-Id", allowed)
+	}
+}
+
+// Pins WithLogging outside spec validation: a request the spec rejects never
+// reaches a handler, and the access log is the only place an operator sees it
+// arrived at all.
+func TestRejectedRequestsStillLeaveAnAccessLogLine(t *testing.T) {
+	var logs bytes.Buffer
+	handler := newLoggedTestHandler(t, &logs)
+
+	rec := post(t, handler, "", `{"operation":"add","left":"1","right":"2"}`)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400; body %s", rec.Code, rec.Body.String())
+	}
+	// The validator's own warning carries no status, so only WithLogging's
+	// access line can satisfy this.
+	if line := logs.String(); !strings.Contains(line, "msg=request") || !strings.Contains(line, "status=400") {
+		t.Fatalf("logged %q, want an access-log line with status=400", line)
 	}
 }
 
