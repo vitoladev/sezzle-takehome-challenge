@@ -256,6 +256,27 @@ test.describe('The app never evaluates arithmetic (requirement 3)', () => {
     expectClean(w)
   })
 
+  test('1 − 0.9 renders exactly 0.1, which binary floating point cannot', async ({ page }) => {
+    const w = watch(page)
+    await open(page)
+    // In IEEE-754 `1 - 0.9` is 0.09999999999999998; only the API's decimal
+    // domain answers 0.1 exactly, so a browser-side subtraction shows here.
+    const [request] = await Promise.all([
+      page.waitForRequest(isCalcPost),
+      compute(page, 'subtract', { left: '1', right: '0.9' }),
+    ])
+    expect(JSON.parse(request.postData() ?? '{}')).toEqual({
+      operation: 'subtract',
+      left: '1',
+      right: '0.9',
+    })
+    await expect(page.getByTestId('result-value')).toHaveText('0.1')
+    await expect(page.getByTestId('result')).toHaveAttribute('data-exact', 'true')
+    await expect(page.getByTestId('result-inexact-marker')).toHaveCount(0)
+    expect(w.posts.length, 'POST /calculations count').toBe(1)
+    expectClean(w)
+  })
+
   test('pressing = issues exactly one POST carrying the Operands', async ({ page }) => {
     const w = watch(page)
     await open(page)
