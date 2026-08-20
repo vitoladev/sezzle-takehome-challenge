@@ -215,8 +215,8 @@ var defineUUIDFormat = sync.OnceFunc(func() {
 	}))
 })
 
-// validationError renders a rejection in the contract's Error shape, so a
-// validation failure and a domain failure are the same shape to a client.
+// validationError keeps a validation failure and a domain failure the same shape
+// to a client.
 func validationError(status int, err error) Error {
 	if status >= http.StatusInternalServerError {
 		return Error{Error: InternalError, Message: internalErrorMessage}

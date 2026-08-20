@@ -75,8 +75,6 @@ func (s *Server) GetCalculations(w http.ResponseWriter, r *http.Request, params 
 // exactly what the contract asked for.
 var errUnknownOperation = errors.New("unknown operation")
 
-// evaluate resolves the request's variant through the generated discriminator
-// and applies the Operation it names.
 func evaluate(ctx context.Context, request CalculationRequest) (Calculation, error) {
 	name, err := request.Discriminator()
 	if err != nil {
@@ -143,14 +141,12 @@ func evaluateBinary(ctx context.Context, request CalculationRequest, operation O
 var powGateSize = int64(runtime.GOMAXPROCS(0))
 
 // powGate is that admission. The mutex inside calc stays: it is what protects a
-// direct, non-HTTP caller, and what keeps these evaluations safe from each
-// other once admitted.
+// direct, non-HTTP caller.
 var powGate = semaphore.NewWeighted(powGateSize)
 
-// underPowGate runs an evaluation that reaches decimal's Taylor series — the
-// call calc serialises — waiting for admission only while the caller is still
-// connected. Cancellation is honoured there: a request already admitted runs to
-// completion, which the contract's Operand bound holds to tens of milliseconds.
+// underPowGate honours cancellation at admission, not after: a request already
+// admitted runs to completion, which the contract's Operand bound holds to tens
+// of milliseconds.
 func underPowGate(ctx context.Context, evaluate func() (calc.Result, error)) (calc.Result, error) {
 	if err := powGate.Acquire(ctx, 1); err != nil {
 		return calc.Result{}, err
@@ -160,8 +156,7 @@ func underPowGate(ctx context.Context, evaluate func() (calc.Result, error)) (ca
 }
 
 // power gates only a fractional exponent, mirroring calc's own branch: an
-// integer exponent is repeated multiplication and returns before the series, so
-// gating it would serialise work that never contended.
+// integer exponent never reaches the series.
 func power(ctx context.Context, base, exponent decimal.Decimal) (calc.Result, error) {
 	if exponent.IsInteger() {
 		return calc.Power(base, exponent)
