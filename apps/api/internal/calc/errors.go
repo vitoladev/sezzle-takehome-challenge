@@ -2,9 +2,8 @@ package calc
 
 import "errors"
 
-// Failures are named by mathematical form rather than by the Operation that
-// produced them, so a caller maps a form to a status code without knowing which
-// Operation ran.
+// A caller maps a failure's mathematical form to a status code without knowing
+// which Operation ran.
 var (
 	// ErrUndefinedResult is an indeterminate form: 0 ÷ 0, 0^0.
 	ErrUndefinedResult = errors.New("undefined result")

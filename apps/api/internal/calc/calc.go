@@ -3,12 +3,9 @@
 // pure arithmetic: nothing from net/http, nothing generated, no store.
 //
 // The four hazards of shopspring/decimal recorded in
-// docs/adr/0001-decimal-over-rational.md are contained here: Div and DivRound
-// panic on a zero divisor, .Pow degrades to float64 for a non-integer exponent,
-// decimal.DivisionPrecision is a mutable global, and ExpTaylor appends to an
-// unsynchronised factorial cache. So every division guards its divisor first,
-// only PowWithPrecision is called, every rounding scale is derived from
-// Precision at the call site rather than from the global, and the one call that
+// docs/adr/0001-decimal-over-rational.md are contained here: every division
+// guards its divisor first, only PowWithPrecision is called, every rounding
+// scale is derived from Precision at the call site, and the one call that
 // reaches the series is serialised.
 //
 // The library rounds at a decimal place while Precision counts significant
