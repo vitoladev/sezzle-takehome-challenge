@@ -81,6 +81,15 @@ defect, not a style preference.
   on Back or reload and no test fails until a human notices. A value a future
   feature will need is handed over in React state — that feature picks its own
   persistence when it exists.
+
+  **One scoped exception: the Session identifier.** It may live in
+  `sessionStorage`, because it is written once, read by exactly one consumer,
+  immutable for the tab's lifetime, and has no React-state counterpart it
+  could desync from — the rationale above does not reach it. The exception is
+  conditional on the access being confined to a single module that owns both
+  the read and the write and surfaces the value through React; a component
+  that touches `sessionStorage` directly is still a violation. No second value
+  earns this exception without amending this rule again.
 - **WEB-2 (hard). Hook rules.** No conditional or loop-nested hook calls.
 - **WEB-3 (hard). Effect cleanup.** Subscriptions, timeouts, and listeners are
   cleaned up. A fetch in an effect carries an abort or a staleness guard, so a

@@ -1,7 +1,8 @@
 {
   "enabledPlugins": {
     "mattpocock-skills@claude-plugins-official": true,
-    "modern-go-guidelines@goland-claude-marketplace": true
+    "modern-go-guidelines@goland-claude-marketplace": true,
+    "frontend-design@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "goland-claude-marketplace": {
