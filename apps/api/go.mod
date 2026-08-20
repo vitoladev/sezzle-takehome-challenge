@@ -2,7 +2,10 @@ module github.com/vitoladev/sezzle-takehome-challenge/api
 
 go 1.26.5
 
-require github.com/oapi-codegen/runtime v1.7.0
+require (
+	github.com/oapi-codegen/runtime v1.7.0
+	github.com/shopspring/decimal v1.4.0
+)
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect

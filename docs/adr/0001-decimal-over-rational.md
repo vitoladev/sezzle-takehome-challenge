@@ -31,7 +31,7 @@ but not in the string I just sent you."
 
 ## Consequences
 
-Three behaviours of the chosen library are hazards rather than conveniences,
+Four behaviours of the chosen library are hazards rather than conveniences,
 each pinned by a named test:
 
 - `.Pow` silently degrades to `float64` for non-integer exponents — `2^0.5`
@@ -39,5 +39,12 @@ each pinned by a named test:
   used.
 - `Div` and `DivRound` **panic** on a zero divisor rather than returning an
   error, so every division site guards first.
-- `decimal.DivisionPrecision` is a mutable package-level global. It is never
-  written; Precision is our own constant, passed explicitly at every call.
+- `decimal.DivisionPrecision` is a mutable package-level global. It is neither
+  read nor written; every rounding scale is derived from our own `Precision`
+  constant at its call site.
+- `ExpTaylor` appends to an unsynchronised package-level factorial cache,
+  despite a comment in the library claiming that append is race-free. Every
+  non-integer exponent reaches it through `PowWithPrecision`, so concurrent
+  roots race on the slice and a torn read of its header panics with an
+  out-of-range index. That one call is serialised behind a mutex; the integer
+  path returns before the series and stays unserialised.
