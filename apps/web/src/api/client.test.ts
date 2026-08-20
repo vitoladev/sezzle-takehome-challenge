@@ -2,7 +2,7 @@ import type { ApiError } from '@sezzle/api-contract'
 import { beforeAll, beforeEach, expect, test, vi } from 'vitest'
 import type { Calculation, CalculationRequest } from './client.ts'
 
-const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const SESSION_ID = crypto.randomUUID()
 
 const requests: Request[] = []
 let respond: () => Promise<Response> = () => Promise.resolve(jsonResponse([]))
@@ -53,31 +53,31 @@ const calculation: Calculation = {
 test('a Calculation is posted with the Session header and returns the Calculation', async () => {
   respond = () => Promise.resolve(jsonResponse(calculation))
 
-  await expect(client.postCalculation(request)).resolves.toEqual(calculation)
+  await expect(client.postCalculation(SESSION_ID, request)).resolves.toEqual(calculation)
 
   const [sent] = requests
   expect(sent?.method).toBe('POST')
   expect(sent?.url).toContain('/api/calculations')
-  expect(sent?.headers.get('x-session-id')).toMatch(SESSION_ID)
+  expect(sent?.headers.get('x-session-id')).toBe(SESSION_ID)
   await expect(sent?.json()).resolves.toEqual(request)
 })
 
 test('History is read with the same Session header the post carried', async () => {
   respond = () => Promise.resolve(jsonResponse([calculation]))
 
-  await expect(client.getCalculations()).resolves.toEqual([calculation])
+  await expect(client.getCalculations(SESSION_ID)).resolves.toEqual([calculation])
 
   const [sent] = requests
   expect(sent?.method).toBe('GET')
   expect(sent?.url).toContain('/api/calculations')
-  expect(sent?.headers.get('x-session-id')).toMatch(SESSION_ID)
+  expect(sent?.headers.get('x-session-id')).toBe(SESSION_ID)
 })
 
 test('a refused Calculation becomes an ApiFailure carrying the contract Error', async () => {
   const body: ApiError = { error: 'division_by_zero', message: 'division by zero' }
   respond = () => Promise.resolve(jsonResponse(body, 422))
 
-  const failure = await rejectionOf(client.postCalculation(request))
+  const failure = await rejectionOf(client.postCalculation(SESSION_ID, request))
 
   expect(failure).toBeInstanceOf(client.ApiFailure)
   expect(failure).toBeInstanceOf(Error)
@@ -92,7 +92,7 @@ test('a refused History read becomes an ApiFailure too', async () => {
   const body: ApiError = { error: 'invalid_request', message: 'X-Session-Id is required' }
   respond = () => Promise.resolve(jsonResponse(body, 400))
 
-  const failure = await rejectionOf(client.getCalculations())
+  const failure = await rejectionOf(client.getCalculations(SESSION_ID))
 
   expect(failure).toBeInstanceOf(client.ApiFailure)
   if (failure instanceof client.ApiFailure) {
@@ -105,7 +105,7 @@ test('a request the API never answered surfaces as itself, not as an ApiFailure'
   // code, anything else renders the `no_response` copy.
   respond = () => Promise.reject(new TypeError('Failed to fetch'))
 
-  const failure = await rejectionOf(client.postCalculation(request))
+  const failure = await rejectionOf(client.postCalculation(SESSION_ID, request))
 
   expect(failure).not.toBeInstanceOf(client.ApiFailure)
   expect(failure).toBeInstanceOf(TypeError)

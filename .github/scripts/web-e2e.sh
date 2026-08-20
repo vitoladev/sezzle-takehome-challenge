@@ -22,7 +22,12 @@ cleanup() {
 	[ -n "$preview_pid" ] && kill "$preview_pid" 2>/dev/null || true
 	exit "$status"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+# Not `trap cleanup INT TERM`: a signal arriving between two commands leaves $?
+# at 0, so cleanup would capture 0 and report an interrupted run as a pass.
+# `exit 130` sets the status first and then fires the EXIT trap, which is also
+# why cleanup runs once here rather than twice.
+trap 'exit 130' INT TERM
 
 # Proves that this process is still alive and that this endpoint answers —
 # a port that happens to be open is not the server we started.

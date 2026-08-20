@@ -179,10 +179,18 @@ scripts/devcontainer/exec.sh .github/scripts/web-e2e.sh    # Playwright against 
 The backend suite is `go test -race` across `calc`, `httpapi` and `store`. The
 frontend has **56 unit tests** running in real Chromium under Vitest browser
 mode, and **57 Playwright scenarios** driving the built page against the real
-API. Both jobs run on every pull request —
-[`.github/workflows/backend.yml`](.github/workflows/backend.yml) and
-[`.github/workflows/frontend.yml`](.github/workflows/frontend.yml), two files so
-that a Go failure and a browser failure are distinguishable at a glance.
+API. Three workflows run on every pull request —
+[`.github/workflows/backend.yml`](.github/workflows/backend.yml),
+[`.github/workflows/frontend.yml`](.github/workflows/frontend.yml), and
+[`.github/workflows/contract.yml`](.github/workflows/contract.yml) — three files
+so that a Go failure, a browser failure and a contract failure are
+distinguishable at a glance without opening a log.
+
+`contract.yml` is what keeps GEN-1 and GEN-2 honest. It regenerates from
+`openapi.yaml` with `turbo run generate --force` — `--force` because a cached
+replay would restore the committed output and prove nothing — and fails if
+`gen.go` or `schema.d.ts` moves. Without it, a hand-edited generated file or a
+spec changed without regenerating builds green.
 
 ## Coverage
 
@@ -201,13 +209,13 @@ Both gates fail the build below **90%** of statements. They are not advisory
 reports: a threshold nothing exits non-zero on is not a threshold.
 
 ```sh
-scripts/devcontainer/exec.sh pnpm --filter api test:coverage   # → 94.6%, gate passes
+scripts/devcontainer/exec.sh pnpm --filter api test:coverage   # → 94.4%, gate passes
 scripts/devcontainer/exec.sh pnpm --filter web test:coverage   # → 100%,  gate passes
 ```
 
-Backend, as of this commit: **94.6%** of hand-written statements overall —
+Backend, as of this commit: **94.4%** of hand-written statements overall —
 `internal/calc` at 94.2%, `internal/httpapi` and `internal/store` together at
-95.7%.
+95.3%.
 
 Frontend, as of this commit: **100%** of statements and lines, 98.4% of
 branches. The 57 Playwright scenarios run against built, uninstrumented assets
