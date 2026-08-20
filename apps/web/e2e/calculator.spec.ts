@@ -17,6 +17,9 @@ import {
   type Page,
   type Request,
 } from '@playwright/test'
+import type { ApiError, components } from '@sezzle/api-contract'
+
+type Calculation = components['schemas']['Calculation']
 
 const CALC = '**/api/calculations'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -62,12 +65,15 @@ function expectClean(w: Watch, allowRefusals = 0) {
 }
 
 /** Asks the API itself what it answers, so the spec never pins copy it does not own. */
-async function apiAnswer(request: APIRequestContext, body: Record<string, string>) {
+async function apiAnswer(
+  request: APIRequestContext,
+  body: Record<string, string>,
+): Promise<Calculation | ApiError> {
   const response = await request.post('/api/calculations', {
     headers: { 'x-session-id': randomUUID() },
     data: body,
   })
-  const payload: { error?: string; message?: string; result?: string } = await response.json()
+  const payload: Calculation | ApiError = await response.json()
   return payload
 }
 
@@ -187,6 +193,7 @@ test('percentage labels its fields percent and of, never left/right', async ({ p
 
 test('√-4 renders a specific error, not a generic one', async ({ page, request }) => {
   const expected = await apiAnswer(request, { operation: 'sqrt', operand: '-4' })
+  if (!('error' in expected)) throw new Error('the API no longer refuses this Calculation')
   const w = watch(page)
   await open(page)
   await pickOperation(page, 'sqrt')
@@ -196,7 +203,7 @@ test('√-4 renders a specific error, not a generic one', async ({ page, request
   await expect(notice).toBeVisible()
   await expect(notice).toHaveAttribute('data-error-code', 'negative_square_root')
   await expect(page.getByTestId('error-code')).toHaveText('negative_square_root')
-  await expect(page.getByTestId('error-message')).toHaveText(expected.message!)
+  await expect(page.getByTestId('error-message')).toHaveText(expected.message)
   await expect(page.getByTestId('result')).toHaveAttribute('data-state', 'failed')
   expectClean(w, 1)
 })
@@ -454,6 +461,7 @@ for (const form of ERROR_FORMS) {
     request,
   }) => {
     const expected = await apiAnswer(request, { operation: form.op, ...form.operands })
+    if (!('error' in expected)) throw new Error('the API no longer refuses this Calculation')
     expect(expected.error, 'the API still answers this Calculation with this form').toBe(form.code)
 
     const w = watch(page)
@@ -463,7 +471,7 @@ for (const form of ERROR_FORMS) {
     await expect(notice).toBeVisible()
     await expect(notice).toHaveAttribute('data-error-code', form.code)
     await expect(page.getByTestId('error-code')).toHaveText(form.code)
-    await expect(page.getByTestId('error-message')).toHaveText(expected.message!)
+    await expect(page.getByTestId('error-message')).toHaveText(expected.message)
     await expect(page.getByTestId('retry')).toBeVisible()
     expectClean(w, 1)
   })
@@ -476,6 +484,7 @@ test('invalid_request renders distinguishably when the body is rewritten in flig
   // The Operand fields cannot compose this body; only a rewrite in flight can.
   const illegal = { operation: 'sqrt', operand: '1', left: '2' }
   const expected = await apiAnswer(request, illegal)
+  if (!('error' in expected)) throw new Error('the API no longer refuses this body')
   expect(expected.error).toBe('invalid_request')
 
   const w = watch(page)
@@ -488,7 +497,7 @@ test('invalid_request renders distinguishably when the body is rewritten in flig
   const notice = page.getByTestId('error')
   await expect(notice).toBeVisible()
   await expect(notice).toHaveAttribute('data-error-code', 'invalid_request')
-  await expect(page.getByTestId('error-message')).toHaveText(expected.message!)
+  await expect(page.getByTestId('error-message')).toHaveText(expected.message)
   expectClean(w, 1)
 })
 
@@ -732,8 +741,9 @@ test('a 50,000-digit Result wraps in its own well without breaking the layout', 
   // maxLength) raised to 1000 — the widest Result the API will hand back.
   const base = '9'.repeat(50)
   const expected = await apiAnswer(request, { operation: 'power', left: base, right: '1000' })
+  if ('error' in expected) throw new Error(`the API refused this Calculation: ${expected.error}`)
   expect(expected.result, 'the API computes this Calculation').toBeTruthy()
-  const digits = expected.result!.replace(/\D/g, '').length
+  const digits = expected.result.replace(/\D/g, '').length
 
   const w = watch(page)
   await open(page)
