@@ -21,16 +21,21 @@ Features follow the bounded contexts of `CONTEXT.md`, not the boxes on screen:
 | --- | --- | --- |
 | `src/features/calculator/` | Arithmetic, Precision | Operation choice, Operand entry, submitting a Calculation, rendering its Result |
 | `src/features/history/` | Record-keeping | The Session's History panel and its rows |
-| `src/features/session/` | Record-keeping | The per-tab Session identifier |
 | `src/features/health/` | — | The header lamp fed by `GET /health` |
 
-Each feature splits by kind:
+The Session has no folder of its own. `useSessionId` mints one identifier per
+tab and exactly one module calls it — the Calculator screen, which stamps it on
+every request and hands it to the History panel — so it lives with its caller
+at `features/calculator/hooks/`. It moves out the day a second feature needs to
+read it, and not before.
+
+A feature splits by kind once it has more than one file of a kind:
 
 ```
 src/features/<context>/
   screens/       screen-level composition (state, submit, wire children)
   components/    presentational pieces reused inside the feature
-  hooks/         TanStack Query against the contract
+  hooks/         the feature's stateful bits (TanStack Query, the Session id)
   model/         pure rules — no React, no fetch
 ```
 
