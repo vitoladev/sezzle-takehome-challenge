@@ -1,11 +1,11 @@
 import type { KeypadAction } from '../model/entry.ts'
 import { OPERATIONS, OPERATION_ORDER, type Operation } from '../model/operations.ts'
 
-const DIGIT_ROWS = [
+const DIGIT_KEYS = [
   ['7', '8', '9'],
   ['4', '5', '6'],
   ['1', '2', '3'],
-]
+].flat()
 
 export function Keypad({
   operation,
@@ -22,7 +22,7 @@ export function Keypad({
     // Pressing a key must not pull focus out of the Operand field being typed.
     <div className="keypad" onMouseDown={(event) => event.preventDefault()}>
       <div className="keypad-digits">
-        {DIGIT_ROWS.flat().map((digit) => (
+        {DIGIT_KEYS.map((digit) => (
           <Key key={digit} testId={`key-${digit}`} onPress={() => onAction({ kind: 'digit', digit })}>
             {digit}
           </Key>

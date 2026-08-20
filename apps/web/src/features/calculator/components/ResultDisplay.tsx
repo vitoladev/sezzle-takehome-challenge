@@ -38,6 +38,7 @@ export function ResultDisplay({
   }
 
   const long = isLongResult(calculation.result)
+  const digits = formatDigitCount(calculation.result)
 
   return (
     <Row state="ready" exact={calculation.exact}>
@@ -47,7 +48,7 @@ export function ResultDisplay({
       </output>
       {long && (
         <span className="digit-count" data-testid="result-digit-count">
-          {formatDigitCount(calculation.result)} digits
+          {digits} digits
         </span>
       )}
     </Row>

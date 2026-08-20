@@ -22,6 +22,7 @@ export function HistoryPanel({
   const { data, error, isError, isPending, isFetching, refetch } = useHistory(sessionId)
   const rows = data === undefined ? [] : data.slice(0, HISTORY_BOUND)
   const state = isPending ? 'loading' : isError ? 'error' : rows.length === 0 ? 'empty' : 'ready'
+  const failure = describeError(error)
 
   return (
     <section className="panel" aria-label="History" data-testid="history" data-state={state}>
@@ -44,7 +45,7 @@ export function HistoryPanel({
       {state === 'error' && (
         <div className="panel-notice" data-testid="history-error" role="alert">
           <p className="notice-message" data-testid="history-error-message">
-            {describeError(error).message}
+            {failure.message}
           </p>
           <RetryButton
             onClick={() => void refetch()}

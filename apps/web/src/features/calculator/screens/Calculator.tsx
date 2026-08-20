@@ -39,6 +39,7 @@ export function Calculator() {
   })
 
   const roles = OPERATIONS[operation].roles
+  const sessionTag = sessionId.slice(0, 8)
   const ready = roles.every((role) => isCompleteOperand(operands[role]))
 
   const inFlight = useRef(false)
@@ -133,7 +134,7 @@ export function Calculator() {
             data-testid="session-tag"
             title="This tab's Session. Its History is separate from every other tab's."
           >
-            session {sessionId.slice(0, 8)}
+            session {sessionTag}
           </span>
         </div>
 
