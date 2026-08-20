@@ -17,17 +17,14 @@ const MAX_LENGTH = 50
 /** Half-typed values the fields accept on the way to a complete Operand. */
 const ENTERABLE = /^-?\d*(\.\d*)?$/
 
-/** Whether the value is an Operand the contract accepts as it stands. */
 export function isCompleteOperand(value: string): boolean {
   return value.length <= MAX_LENGTH && COMPLETE.test(value)
 }
 
-/** Whether a typed or pasted value may land in an Operand field at all. */
 export function isEnterable(value: string): boolean {
   return value.length <= MAX_LENGTH && ENTERABLE.test(value)
 }
 
-/** Applies one keypad edit to an Operand field's value. */
 export function applyEntry(value: string, action: KeypadAction): string {
   switch (action.kind) {
     case 'digit':

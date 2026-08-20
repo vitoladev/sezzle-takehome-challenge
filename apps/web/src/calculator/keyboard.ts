@@ -1,6 +1,5 @@
 import type { KeypadAction } from './entry.ts'
 
-/** The keyboard bindings, one per keypad key that has one. */
 export function actionForKey(key: string): KeypadAction | null {
   if (/^[0-9]$/.test(key)) return { kind: 'digit', digit: key }
 
