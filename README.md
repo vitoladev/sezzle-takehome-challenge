@@ -7,7 +7,9 @@ Result says whether it is exact.
 
 - **`apps/web`** — Vite + React (TypeScript). Keypad entry with arity-aware
   Operand fields, an Exactness indicator, and a History panel. Dev server on
-  `:5173`, proxying `/api/*` to the backend.
+  `:5173`, proxying `/api/*` to the backend. Its layout — features by bounded
+  context, shared `ui/`, `api/` and `utils/` — is in
+  [apps/web/README.md](apps/web/README.md).
 - **`apps/api`** — Go HTTP server on `:8080`, serving the API under `/api/*`.
   Arbitrary-precision decimal arithmetic, contract validation at the edge, and
   an in-memory History per Session.
@@ -178,7 +180,7 @@ scripts/devcontainer/exec.sh .github/scripts/web-e2e.sh    # Playwright against 
 
 The backend suite is `go test -race` across `calc`, `httpapi` and `store`. The
 frontend has **56 unit tests** running in real Chromium under Vitest browser
-mode, and **57 Playwright scenarios** driving the built page against the real
+mode, and **58 Playwright scenarios** driving the built page against the real
 API. Three workflows run on every pull request —
 [`.github/workflows/backend.yml`](.github/workflows/backend.yml),
 [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml), and
@@ -218,7 +220,7 @@ Backend, as of this commit: **94.4%** of hand-written statements overall —
 95.3%.
 
 Frontend, as of this commit: **100%** of statements and lines, 98.4% of
-branches. The 57 Playwright scenarios run against built, uninstrumented assets
+branches. The 58 Playwright scenarios run against built, uninstrumented assets
 and so contribute nothing to this number — every line counted above is reached
 by the unit suite in its own right. Branches are reported but not gated, for the
 reason `apps/web/vite.config.ts` records at the threshold.

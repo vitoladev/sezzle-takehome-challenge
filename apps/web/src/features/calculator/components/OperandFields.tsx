@@ -1,5 +1,5 @@
-import { isEnterable } from './entry.ts'
-import { OPERATIONS, type OperandRole, type OperandValues, type Operation } from './operations.ts'
+import { isEnterable } from '../model/entry.ts'
+import { OPERATIONS, type OperandRole, type OperandValues, type Operation } from '../model/operations.ts'
 
 export function OperandFields({
   operation,

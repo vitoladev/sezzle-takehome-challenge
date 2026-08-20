@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { Calculation } from '../api/client.ts'
+import type { Calculation } from '@/api/client.ts'
 import { HistoryRow } from './HistoryRow.tsx'
 
 function row(calculation: Calculation, onUseResult = vi.fn()) {

@@ -1,10 +1,8 @@
-import type { Calculation } from '../api/client.ts'
-import { InexactMarker } from '../calculator/InexactMarker.tsx'
-import { LONG_RESULT } from '../calculator/ResultDisplay.tsx'
-import { isCompleteOperand } from '../calculator/entry.ts'
-import { OPERATIONS } from '../calculator/operations.ts'
-
-const count = new Intl.NumberFormat()
+import type { Calculation } from '@/api/client.ts'
+import { isCompleteOperand } from '@/features/calculator/model/entry.ts'
+import { OPERATIONS } from '@/features/calculator/model/operations.ts'
+import { InexactMarker } from '@/ui/InexactMarker.tsx'
+import { formatDigitCount, isLongResult } from '@/utils/result.ts'
 
 export function HistoryRow({
   calculation,
@@ -14,7 +12,8 @@ export function HistoryRow({
   onUseResult: (result: string) => void
 }) {
   const { operation, result, exact } = calculation
-  const long = result.length > LONG_RESULT
+  const long = isLongResult(result)
+  const digits = formatDigitCount(result)
   // A Result past the contract's `Operand` (`maxLength: 50`) is not an Operand
   // the API would accept, so there is nothing to carry it into.
   const carryable = isCompleteOperand(result)
@@ -43,7 +42,7 @@ export function HistoryRow({
         </span>
         {long && (
           <span className="history-digits" data-testid="history-digit-count">
-            {count.format(result.replace(/\D/g, '').length)} digits
+            {digits} digits
           </span>
         )}
       </div>

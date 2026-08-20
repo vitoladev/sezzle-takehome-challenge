@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ComponentType } from 'react'
 import { beforeAll, beforeEach, expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { Calculation } from '../api/client.ts'
+import type { Calculation } from '@/api/client.ts'
 
 const requests: Request[] = []
 let respond: () => Promise<Response> = () => Promise.resolve(jsonResponse([]))

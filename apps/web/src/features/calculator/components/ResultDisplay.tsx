@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react'
-import type { Calculation } from '../api/client.ts'
-import { InexactMarker } from './InexactMarker.tsx'
-
-/** Past this length a Result is rendered long-form, with a digit count. */
-export const LONG_RESULT = 40
-
-const count = new Intl.NumberFormat()
+import type { Calculation } from '@/api/client.ts'
+import { InexactMarker } from '@/ui/InexactMarker.tsx'
+import { formatDigitCount, isLongResult } from '@/utils/result.ts'
 
 export function ResultDisplay({
   calculation,
@@ -41,8 +37,8 @@ export function ResultDisplay({
     )
   }
 
-  const long = calculation.result.length > LONG_RESULT
-  const digits = calculation.result.replace(/\D/g, '').length
+  const long = isLongResult(calculation.result)
+  const digits = formatDigitCount(calculation.result)
 
   return (
     <Row state="ready" exact={calculation.exact}>
@@ -52,7 +48,7 @@ export function ResultDisplay({
       </output>
       {long && (
         <span className="digit-count" data-testid="result-digit-count">
-          {count.format(digits)} digits
+          {digits} digits
         </span>
       )}
     </Row>

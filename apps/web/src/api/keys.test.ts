@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { historyQueryKey } from './useHistory.ts'
+import { historyQueryKey } from './keys.ts'
 
 test('the query key carries the Session identifier', () => {
   const sessionId = crypto.randomUUID()

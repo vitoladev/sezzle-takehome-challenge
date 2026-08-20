@@ -129,6 +129,18 @@ defect, not a style preference.
   non-null assertion, no `as`-cast applied to a response body; no unchecked
   array index rendered directly. Types come from
   `packages/api-contract/src/schema.d.ts`.
+- **WEB-10 (judgement). Rendered values are named, not called in place.** A
+  hook call, or a function call whose return value is what gets rendered, is
+  bound to a `const` in the component body and the JSX references the name:
+  `const digits = formatDigitCount(result)`, not `{formatDigitCount(result)}`
+  inline. A frame that throws mid-render then names the value that produced it
+  instead of pointing at an anonymous expression inside the element tree, and
+  a breakpoint has something to inspect. Two exemptions: event handlers
+  (`onClick={() => onAction(...)}` passes a function rather than rendering a
+  value), and a `.map` over a collection to produce elements, which is the
+  element tree's own structure and has nowhere else to live. Values that do not
+  depend on props or state are hoisted to module scope rather than recomputed
+  per render.
 
 ## TOOL — Scripts, CI, devcontainer, agent docs
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { OperandFields } from './OperandFields.tsx'
-import { EMPTY_OPERANDS } from './operations.ts'
+import { EMPTY_OPERANDS } from '../model/operations.ts'
 
 function fields(operation: 'add' | 'sqrt' | 'percentage') {
   return render(

@@ -1,7 +1,7 @@
 import type { ApiError } from '@sezzle/api-contract'
 import { expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { ApiFailure } from '../api/client.ts'
+import { ApiFailure } from '@/api/client.ts'
 import { ErrorNotice } from './ErrorNotice.tsx'
 
 test('a refusal is rendered by the code and message the API sent', async () => {
