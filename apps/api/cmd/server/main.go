@@ -12,6 +12,7 @@ import (
 
 	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/config"
 	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/httpapi"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/store"
 )
 
 const (
@@ -38,15 +39,20 @@ func run(logger *slog.Logger) error {
 	defer stop()
 
 	mux := http.NewServeMux()
-	httpapi.HandlerWithOptions(httpapi.NewServer(logger), httpapi.StdHTTPServerOptions{
+	httpapi.HandlerWithOptions(httpapi.NewServer(logger, store.NewMemory[httpapi.Calculation]()), httpapi.StdHTTPServerOptions{
 		BaseRouter:       mux,
 		BaseURL:          "/api",
 		ErrorHandlerFunc: httpapi.ErrorHandler(logger),
 	})
 
+	validate, err := httpapi.WithSpecValidation(logger)
+	if err != nil {
+		return err
+	}
+
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      httpapi.WithLogging(logger, httpapi.WithRecover(logger, httpapi.WithCORS(mux))),
+		Handler:      httpapi.WithLogging(logger, httpapi.WithRecover(logger, httpapi.WithCORS(validate(mux)))),
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		IdleTimeout:  idleTimeout,
