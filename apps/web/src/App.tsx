@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { api } from './api/client.ts'
+import { Calculator } from './calculator/Calculator.tsx'
 import { HealthBadge, type HealthState } from './HealthBadge.tsx'
 
 const queryClient = new QueryClient()
@@ -22,9 +23,15 @@ function Health() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <main className="flex flex-1 flex-col items-center justify-center gap-4">
-        <h1>sezzle-take-home-challenge</h1>
-        <Health />
+      <main className="desk">
+        <header className="strip">
+          <div>
+            <h1>Calculator</h1>
+            <p className="tagline">Every Result is computed by the API, never in this page.</p>
+          </div>
+          <Health />
+        </header>
+        <Calculator />
       </main>
     </QueryClientProvider>
   )

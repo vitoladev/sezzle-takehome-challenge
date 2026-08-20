@@ -51,7 +51,7 @@ can read them. Pass:
 - **Fixed point:** the base branch from step 1.
 - **Standards source:** `docs/CODING_STANDARDS.md`. It is canonical and it
   overrides the skill's built-in Fowler smell baseline wherever the two
-  disagree. Its `GO-*`, `WEB-*`, `GEN-*`, `TOOL-*` rules are this repo's
+  disagree. Its `GO-*`, `WEB-*`, `GEN-*`, `DOC-*`, `TOOL-*` rules are this repo's
   partition lenses — keep them there, never restate them in this file, or the
   two copies drift (`TOOL-5`).
 - **Spec source:** the slice's sub-issue (`gh issue view <n>`). With no

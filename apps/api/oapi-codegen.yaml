@@ -4,3 +4,7 @@ output: gen.go
 generate:
   models: true
   std-http-server: true
+  # The spec is enforced at runtime, not merely generated from: kin-openapi's
+  # validator needs it in the binary, and embedding is what keeps openapi.yaml
+  # the single copy.
+  embedded-spec: true

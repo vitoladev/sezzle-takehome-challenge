@@ -13,7 +13,7 @@ A reviewer reads the PR summary top to bottom and does not scroll into comments 
 Find the green run for the PR's head branch and pull the recordings:
 
 ```bash
-gh run list --branch <branch> --workflow ci.yml --json databaseId,conclusion,headSha
+gh run list --branch <branch> --workflow frontend.yml --json databaseId,conclusion,headSha
 gh run download <run-id> -n playwright-web-e2e -D <scratch>/e2e-artifact
 ```
 

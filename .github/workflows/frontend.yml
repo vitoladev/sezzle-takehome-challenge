@@ -1,0 +1,65 @@
+# The browser side of a pull request: lint, the unit suite with its coverage
+# gate, then the Playwright suite against built assets. An E2E suite that does
+# not run in CI stops being true within about two pull requests.
+#
+# No `branches:` filter, for the reason backend.yml gives.
+name: frontend
+
+on: pull_request
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: lint, unit coverage gate, e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from `packageManager` in the root package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # The E2E suite drives the built page against the real API.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - run: pnpm install --frozen-lockfile
+
+      # Before the unit suite, not just the E2E one: the unit tests run in
+      # chromium through @vitest/browser-playwright, and a GitHub runner ships
+      # no browser the devcontainer image would have baked in.
+      - name: Install Playwright browsers
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Lint
+        run: pnpm --filter web lint
+
+      # Fails below the threshold; it and the exclusion live in
+      # apps/web/vite.config.ts.
+      - name: Unit tests and coverage gate
+        run: pnpm --filter web test:coverage
+
+      - name: End-to-end tests against built assets
+        run: .github/scripts/web-e2e.sh
+
+      # Videos, screenshots, and traces of every scenario — the recordings the
+      # pr-preview-media skill turns into the PR's Preview section, which is
+      # why the name is fixed. `always()` so a failed run uploads its evidence.
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-web-e2e
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore

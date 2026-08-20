@@ -1,0 +1,60 @@
+# The contract side of a pull request: regenerate from openapi.yaml and fail if
+# the committed output moves. A third file rather than a step inside backend.yml
+# or frontend.yml, for the reason backend.yml gives about the other two — a
+# drift failure is neither a Go failure nor a browser failure, and the checks
+# list should say which of the three broke without anyone opening a log. It also
+# answers in seconds instead of queueing behind a Playwright browser install.
+#
+# GEN-1 and GEN-2 are hard rules, but until this job existed they rested
+# entirely on review discipline: a hand-edited gen.go, or a spec changed without
+# regenerating, built green.
+#
+# No `branches:` filter, for the reason backend.yml gives.
+name: contract
+
+on: pull_request
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated:
+    name: generated output matches openapi.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Both toolchains, because one spec produces two artifacts: gen.go through
+      # `go tool oapi-codegen`, schema.d.ts through `openapi-typescript`.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - run: pnpm install --frozen-lockfile
+
+      # `--force`, not `pnpm generate`: turbo caches the task, and a cached
+      # replay would restore the committed output and prove nothing. This makes
+      # both generators actually run.
+      - name: Regenerate from the spec
+        run: pnpm exec turbo run generate --force
+
+      - name: Fail if the generated output drifted
+        run: |
+          if ! git diff --exit-code -- \
+            apps/api/internal/httpapi/gen.go \
+            packages/api-contract/src/schema.d.ts
+          then
+            echo "::error::Generated output does not match packages/api-contract/openapi.yaml."
+            echo "openapi.yaml is the single source of truth and its output is committed, never hand-edited." >&2
+            echo "Run 'scripts/devcontainer/exec.sh pnpm generate' and commit the result." >&2
+            exit 1
+          fi

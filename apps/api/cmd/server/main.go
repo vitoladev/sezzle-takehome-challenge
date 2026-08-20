@@ -10,8 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vitola/sezzle-take-home-challenge/api/internal/config"
-	"github.com/vitola/sezzle-take-home-challenge/api/internal/httpapi"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/config"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/httpapi"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/store"
 )
 
 const (
@@ -37,16 +38,14 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	mux := http.NewServeMux()
-	httpapi.HandlerWithOptions(httpapi.NewServer(logger), httpapi.StdHTTPServerOptions{
-		BaseRouter:       mux,
-		BaseURL:          "/api",
-		ErrorHandlerFunc: httpapi.ErrorHandler(logger),
-	})
+	handler, err := httpapi.NewHandler(logger, store.NewMemory[httpapi.Calculation]())
+	if err != nil {
+		return err
+	}
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      httpapi.WithLogging(logger, httpapi.WithRecover(logger, httpapi.WithCORS(mux))),
+		Handler:      handler,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		IdleTimeout:  idleTimeout,
