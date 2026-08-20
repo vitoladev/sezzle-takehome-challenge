@@ -59,7 +59,7 @@ export function HistoryPanel({
 
       {state === 'empty' && (
         <p className="panel-notice panel-notice--empty" data-testid="history-empty">
-          No Calculations yet. Every one this Session performs is kept here — the last{' '}
+          No Calculations yet. Every one this Session performs is kept here: the last{' '}
           {HISTORY_BOUND}, newest first.
         </p>
       )}

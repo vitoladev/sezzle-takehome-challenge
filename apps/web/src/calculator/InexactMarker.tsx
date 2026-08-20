@@ -11,7 +11,7 @@ export function InexactMarker({ testId }: { testId: string }) {
     <span
       className="marker"
       data-testid={testId}
-      title={`Inexact — the Result keeps ${PRECISION} significant digits (Precision); the true value has more.`}
+      title={`Inexact: the Result keeps ${PRECISION} significant digits (Precision); the true value has more.`}
     >
       ≈
     </span>
