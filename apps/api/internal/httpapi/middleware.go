@@ -19,6 +19,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/google/uuid"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/store"
 )
 
 const (
@@ -33,6 +34,31 @@ const (
 // but the conventional way an access log records a client that went away
 // before a response did.
 const statusClientClosedRequest = 499
+
+// NewHandler builds the served handler: the generated routes under /api,
+// wrapped in the middleware chain. It is the one place the chain is composed,
+// so what a test drives is what main serves.
+//
+// The nesting is load-bearing, outermost first: WithLogging so every request
+// leaves an access-log line whatever rejects it; WithRecover outside both of
+// the below so a panic in either still answers in the contract's Error shape;
+// WithCORS ahead of validation because a preflight is not in the spec, so
+// validation reaching it first would reject it as an undefined route.
+func NewHandler(logger *slog.Logger, history store.Store[Calculation]) (http.Handler, error) {
+	mux := http.NewServeMux()
+	HandlerWithOptions(NewServer(logger, history), StdHTTPServerOptions{
+		BaseRouter:       mux,
+		BaseURL:          "/api",
+		ErrorHandlerFunc: ErrorHandler(logger),
+	})
+
+	validate, err := WithSpecValidation(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return WithLogging(logger, WithRecover(logger, WithCORS(validate(mux)))), nil
+}
 
 type loggerCtxKey struct{}
 

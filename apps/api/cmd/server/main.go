@@ -38,21 +38,14 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	mux := http.NewServeMux()
-	httpapi.HandlerWithOptions(httpapi.NewServer(logger, store.NewMemory[httpapi.Calculation]()), httpapi.StdHTTPServerOptions{
-		BaseRouter:       mux,
-		BaseURL:          "/api",
-		ErrorHandlerFunc: httpapi.ErrorHandler(logger),
-	})
-
-	validate, err := httpapi.WithSpecValidation(logger)
+	handler, err := httpapi.NewHandler(logger, store.NewMemory[httpapi.Calculation]())
 	if err != nil {
 		return err
 	}
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      httpapi.WithLogging(logger, httpapi.WithRecover(logger, httpapi.WithCORS(validate(mux)))),
+		Handler:      handler,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		IdleTimeout:  idleTimeout,

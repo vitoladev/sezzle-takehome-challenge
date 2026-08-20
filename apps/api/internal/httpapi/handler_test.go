@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/calc"
 	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/store"
 )
@@ -30,18 +31,18 @@ func newTestHandler(t *testing.T) http.Handler {
 
 func newLoggedTestHandler(t *testing.T, logs io.Writer) http.Handler {
 	t.Helper()
-	logger := slog.New(slog.NewTextHandler(logs, nil))
-	mux := http.NewServeMux()
-	HandlerWithOptions(NewServer(logger, store.NewMemory[Calculation]()), StdHTTPServerOptions{
-		BaseRouter:       mux,
-		BaseURL:          "/api",
-		ErrorHandlerFunc: ErrorHandler(logger),
-	})
-	validate, err := WithSpecValidation(logger)
+	return newStoreTestHandler(t, logs, store.NewMemory[Calculation]())
+}
+
+// Every test drives the handler main serves, so a change to the chain cannot
+// leave the tests asserting the old one.
+func newStoreTestHandler(t *testing.T, logs io.Writer, history store.Store[Calculation]) http.Handler {
+	t.Helper()
+	handler, err := NewHandler(slog.New(slog.NewTextHandler(logs, nil)), history)
 	if err != nil {
-		t.Fatalf("spec validation: %v", err)
+		t.Fatalf("new handler: %v", err)
 	}
-	return WithLogging(logger, WithRecover(logger, WithCORS(validate(mux))))
+	return handler
 }
 
 func post(t *testing.T, handler http.Handler, session, body string) *httptest.ResponseRecorder {
@@ -375,14 +376,22 @@ func postDirect(t *testing.T, body string) *httptest.ResponseRecorder {
 	return rec
 }
 
-func TestRecoverAnswersAPanicWithTheContractsErrorShape(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	panicking := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-		panic("the panic no probe found")
-	})
+// panickingStore is a handler failure the chain has to survive: it panics
+// deepest inside the chain, past CORS and validation.
+type panickingStore struct{}
 
-	rec := httptest.NewRecorder()
-	WithLogging(logger, WithRecover(logger, panicking)).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/health", nil))
+func (panickingStore) Record(uuid.UUID, Calculation) {}
+
+func (panickingStore) List(uuid.UUID) []Calculation {
+	panic("the panic no probe found")
+}
+
+// Pins WithRecover outside the rest of the chain: a panic raised at the mux is
+// still answered, and answered in the contract's shape.
+func TestRecoverAnswersAPanicWithTheContractsErrorShape(t *testing.T) {
+	handler := newStoreTestHandler(t, io.Discard, panickingStore{})
+
+	rec := get(t, handler, sessionA)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500", rec.Code)
@@ -390,7 +399,9 @@ func TestRecoverAnswersAPanicWithTheContractsErrorShape(t *testing.T) {
 	assertError(t, rec, InternalError)
 }
 
-// The header the frontend sends must survive a cross-origin preflight.
+// The header the frontend sends must survive a cross-origin preflight. Pins
+// WithCORS ahead of spec validation: a preflight is not in the spec, so
+// validation reaching it first would reject it as an undefined route.
 func TestPreflightAdvertisesTheSessionHeader(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTestHandler(t).ServeHTTP(rec, httptest.NewRequest(http.MethodOptions, "/api/calculations", nil))
