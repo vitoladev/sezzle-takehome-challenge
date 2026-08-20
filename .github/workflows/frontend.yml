@@ -43,8 +43,8 @@ jobs:
       - name: Lint
         run: pnpm --filter web lint
 
-      # Fails below 90% of hand-written statements; the thresholds and the
-      # exclusion live in apps/web/vite.config.ts.
+      # Fails below the threshold; it and the exclusion live in
+      # apps/web/vite.config.ts.
       - name: Unit tests and coverage gate
         run: pnpm --filter web test:coverage
 

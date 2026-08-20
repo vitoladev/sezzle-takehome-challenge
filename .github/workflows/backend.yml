@@ -28,8 +28,8 @@ jobs:
         working-directory: apps/api
         run: go vet ./...
 
-      # Runs `go test -race -coverprofile` and fails below 90% of hand-written
-      # statements. The script owns both so the exclusions and the threshold
-      # are not stated twice; `pnpm --filter api test:coverage` runs the same.
+      # Runs `go test -race -coverprofile` and fails below the threshold. The
+      # script owns that and the exclusion list so neither is stated twice;
+      # `pnpm --filter api test:coverage` runs the same gate.
       - name: Race tests and coverage gate
         run: apps/api/scripts/coverage-gate.sh
