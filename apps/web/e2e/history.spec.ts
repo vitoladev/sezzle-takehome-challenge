@@ -9,6 +9,9 @@
  */
 import { randomUUID } from 'node:crypto'
 import { expect, test, type APIRequestContext, type ConsoleMessage, type Page } from '@playwright/test'
+import type { components } from '@sezzle/api-contract'
+
+type Calculation = components['schemas']['Calculation']
 
 const CALC = '**/api/calculations'
 
@@ -245,7 +248,9 @@ test('the panel renders what the server returns, never what the mutation answere
 }) => {
   const w = watch(page)
   // History is the server's, so a GET that disagrees with the POST wins.
-  const server = [{ operation: 'subtract', left: '9', right: '4', result: '5', exact: true }]
+  const server: Calculation[] = [
+    { operation: 'subtract', left: '9', right: '4', result: '5', exact: true },
+  ]
   await page.route(CALC, async (route) => {
     if (route.request().method() !== 'GET') return route.continue()
     await route.fulfill({ json: server })
@@ -398,11 +403,10 @@ test('a Calculation the server never recorded never reaches the panel', async ({
   const w = watch(page)
   // The spec answers the POST itself, so the real server records nothing and
   // its History stays empty. A panel fed by the mutation would show a row.
+  const answer: Calculation = { operation: 'add', left: '2', right: '2', result: '5', exact: true }
   await page.route(CALC, async (route) => {
     if (route.request().method() !== 'POST') return route.continue()
-    await route.fulfill({
-      json: { operation: 'add', left: '2', right: '2', result: '5', exact: true },
-    })
+    await route.fulfill({ json: answer })
   })
   await open(page)
   await compute(page, 'add', { left: '2', right: '2' })
@@ -519,7 +523,7 @@ test('the panel renders at most 50 rows even when the server sends 60', async ({
   const w = watch(page)
   // The store bounds History at 50 too, so only a fabricated over-long answer
   // can prove the panel's own bound rather than the server's.
-  const server = Array.from({ length: 60 }, (_, i) => ({
+  const server: Calculation[] = Array.from({ length: 60 }, (_, i) => ({
     operation: 'subtract',
     left: String(1000 + i),
     right: '1',

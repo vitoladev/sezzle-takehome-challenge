@@ -1,5 +1,4 @@
 import { createApiClient, type ApiError, type components } from '@sezzle/api-contract'
-import { getSessionId } from '../session/useSessionId.ts'
 
 export const api = createApiClient()
 
@@ -18,24 +17,30 @@ export class ApiFailure extends Error {
 }
 
 /**
- * The one place the Session header is attached: openapi-fetch types
+ * The one place the Session header is *named*: openapi-fetch types
  * `X-Session-Id` as a required per-operation parameter, so it cannot be a
  * client-construction option — every call goes through a request function here
- * instead of naming the header at its own call site.
+ * instead of naming the header at its own call site. The Session it carries is
+ * the caller's to pass, never storage this module reads behind their back: a
+ * query keyed on one Session and a request sent for another would be two
+ * values that only happen to agree.
  */
-export async function postCalculation(body: CalculationRequest): Promise<Calculation> {
+export async function postCalculation(
+  sessionId: string,
+  body: CalculationRequest,
+): Promise<Calculation> {
   const { data, error } = await api.POST('/calculations', {
     body,
-    params: { header: { 'X-Session-Id': getSessionId() } },
+    params: { header: { 'X-Session-Id': sessionId } },
   })
   if (error) throw new ApiFailure(error)
   return data
 }
 
 /** The Session's History, newest first — `[]` when it holds no Calculation. */
-export async function getCalculations(): Promise<Calculation[]> {
+export async function getCalculations(sessionId: string): Promise<Calculation[]> {
   const { data, error } = await api.GET('/calculations', {
-    params: { header: { 'X-Session-Id': getSessionId() } },
+    params: { header: { 'X-Session-Id': sessionId } },
   })
   if (error) throw new ApiFailure(error)
   return data

@@ -32,10 +32,10 @@ beforeEach(() => {
   respond = () => Promise.resolve(jsonResponse([]))
 })
 
-function mount(onUseResult = vi.fn()) {
+function mount(sessionId = crypto.randomUUID(), onUseResult = vi.fn()) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <HistoryPanel sessionId={crypto.randomUUID()} onUseResult={onUseResult} />
+      <HistoryPanel sessionId={sessionId} onUseResult={onUseResult} />
     </QueryClientProvider>,
   )
 }
@@ -64,7 +64,8 @@ test('the panel renders the Calculations the server sent, in the order it sent t
     { operation: 'add', left: '0.1', right: '0.2', result: '0.3', exact: true },
   ]
   respond = () => Promise.resolve(jsonResponse(history))
-  const screen = await mount()
+  const sessionId = crypto.randomUUID()
+  const screen = await mount(sessionId)
 
   await expect.element(screen.getByTestId('history')).toHaveAttribute('data-state', 'ready')
   const rows = screen.container.querySelectorAll('[data-testid="history-row"]')
@@ -74,9 +75,9 @@ test('the panel renders the Calculations the server sent, in the order it sent t
 
   const [request] = requests
   expect(request?.url).toContain('/api/calculations')
-  expect(request?.headers.get('x-session-id')).toMatch(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-  )
+  // The Session the panel was given, not merely something UUID-shaped: the key
+  // the entry is cached under and the header the request carries are one value.
+  expect(request?.headers.get('x-session-id')).toBe(sessionId)
 })
 
 test('a failed read shows an error whose retry re-reads History', async () => {
@@ -88,7 +89,10 @@ test('a failed read shows an error whose retry re-reads History', async () => {
     .element(screen.getByTestId('history-error-message'))
     .toHaveTextContent('The API did not answer')
 
-  respond = () => Promise.resolve(jsonResponse([{ operation: 'add', left: '2', right: '2', result: '4', exact: true }]))
+  const recovered: Calculation[] = [
+    { operation: 'add', left: '2', right: '2', result: '4', exact: true },
+  ]
+  respond = () => Promise.resolve(jsonResponse(recovered))
   await screen.getByTestId('history-retry').click()
 
   await expect.element(screen.getByTestId('history')).toHaveAttribute('data-state', 'ready')

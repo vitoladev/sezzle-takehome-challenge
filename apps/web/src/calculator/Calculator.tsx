@@ -28,7 +28,7 @@ export function Calculator() {
   const [activeRole, setActiveRole] = useState<OperandRole>('left')
 
   const { data, error, isError, isPending, mutate, reset, variables } = useMutation({
-    mutationFn: postCalculation,
+    mutationFn: (request: CalculationRequest) => postCalculation(sessionId, request),
     // Deliberately a mutation option rather than a per-call one: `reset()`
     // detaches the observer, so a Calculation cleared while in flight would
     // never invalidate the History the server has already recorded it in.
