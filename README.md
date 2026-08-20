@@ -19,7 +19,7 @@ scripts/devcontainer/up.sh              # build + start the container, install d
 scripts/devcontainer/exec.sh pnpm dev   # web on :5173, api on :8080
 ```
 
-Open **http://localhost:5173** — the page shows the API health check going green. That's it.
+Open **http://localhost:5173** — the calculator, with the API health lamp in its header. That's it.
 
 ## Tests
 
