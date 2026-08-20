@@ -135,10 +135,12 @@ defect, not a style preference.
   `const digits = formatDigitCount(result)`, not `{formatDigitCount(result)}`
   inline. A frame that throws mid-render then names the value that produced it
   instead of pointing at an anonymous expression inside the element tree, and
-  a breakpoint has something to inspect. Event handlers are exempt —
-  `onClick={() => onAction(...)}` passes a function rather than rendering a
-  value. Values that do not depend on props or state are hoisted to module
-  scope rather than recomputed per render.
+  a breakpoint has something to inspect. Two exemptions: event handlers
+  (`onClick={() => onAction(...)}` passes a function rather than rendering a
+  value), and a `.map` over a collection to produce elements, which is the
+  element tree's own structure and has nowhere else to live. Values that do not
+  depend on props or state are hoisted to module scope rather than recomputed
+  per render.
 
 ## TOOL — Scripts, CI, devcontainer, agent docs
 

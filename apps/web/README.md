@@ -87,10 +87,10 @@ Vitest Browser Mode (`vitest-browser-react`) in real Chromium, each test file
 next to the module it covers. Screens and components are driven through the
 rendered DOM; `model/` and `utils/` are plain Vitest.
 
-Coverage is gated at 90% of statements and lines over **every** module under
-`src/` — including ones no test imports — with `main.tsx` excluded. The repo
-README's [Coverage](../../README.md#coverage) section is where that exclusion
-list is written down.
+Coverage counts **every** module under `src/`, including ones no test imports
+— the alternative measures only what the suite already reaches. The threshold
+and the exclusion list are written down once, in the repo README's
+[Coverage](../../README.md#coverage) section.
 
 ```sh
 scripts/devcontainer/exec.sh pnpm --filter web test
@@ -110,8 +110,10 @@ e2e/
 ```
 
 Locators go through `data-testid` and `data-*` state attributes (`data-state`,
-`data-exact`, `data-error-code`), never through copy. Operands, Results, and
-Session identifiers are data — those stay asserted.
+`data-exact`, `data-error-code`) rather than through copy, so a wording change
+is not a test failure. The page heading is the one exception, used as a
+"the app rendered" anchor. Operands, Results, and Session identifiers are data
+— those stay asserted.
 
 ```sh
 scripts/devcontainer/exec.sh pnpm dev                 # leave running

@@ -8,8 +8,3 @@
 export function historyQueryKey(sessionId: string) {
   return ['calculations', sessionId] as const
 }
-
-/** The Health probe's cache entry. Health belongs to no Session. */
-export function healthQueryKey() {
-  return ['health'] as const
-}
