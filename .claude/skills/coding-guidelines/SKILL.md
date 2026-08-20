@@ -57,7 +57,25 @@ functions that *your* change made unused — and nothing older than that.
 
 Test: every changed line traces directly to the user's request.
 
-## 4. Goal-Driven Execution
+## 4. Documentation Freshness
+
+**Fix the docs your change made stale, in the same change.**
+
+- Renaming a module path, moving a file, changing a command, a default, or a
+  described behaviour obliges you to update every document that states the old
+  fact — `README.md`, `CLAUDE.md`, `CONTEXT.md`, `docs/**`, and the skill and
+  agent files under `.claude/`.
+- Never defer it to a later task, a docs-only pass, or the slice that "owns
+  documentation". By then the next task has already read the stale fact and
+  planned against it, and the mistake compounds downstream.
+- This is not a conflict with Surgical Changes: repairing what *your* change
+  invalidated traces to the request, exactly as removing the orphans your
+  change created does. Documentation your change did not touch stays untouched.
+
+Test: after the change, does any document still state something the change made
+untrue? If yes, it belongs in this change.
+
+## 5. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
@@ -77,7 +95,7 @@ For multi-step tasks, state a brief plan where every step ends in a check:
 Strong success criteria let you loop independently; weak ones ("make it
 work") force constant clarification.
 
-## 5. Comments
+## 6. Comments
 
 **Do not narrate comments or overstate what the code already provides.**
 
@@ -88,7 +106,7 @@ work") force constant clarification.
 
 Test: if deleting the comment loses no information, delete it.
 
-## 6. Frontend State (apps/web)
+## 7. Frontend State (apps/web)
 
 **Never park state on `window.*` — no `history.pushState`/`replaceState`, no `localStorage`/`sessionStorage`, no globals hung off `window`.**
 

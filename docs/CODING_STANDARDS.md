@@ -31,7 +31,9 @@ review finding.
 
 - **CORE-1 (hard).** Every changed line traces to the stated request. Adjacent
   code, comments, and formatting are left alone; refactoring beyond what the
-  task requires is out of scope, as is unrelated dead-code removal.
+  task requires is out of scope, as is unrelated dead-code removal. Updating a
+  document the change itself made stale traces to the request by way of DOC-1
+  and is never cited as a CORE-1 violation.
 - **CORE-2 (judgement).** Nothing speculative: no abstraction around single-use
   code, no configurability that was not asked for, no error handling for
   scenarios that cannot occur.
@@ -43,6 +45,22 @@ review finding.
 - **CORE-5 (hard).** A change that makes an import, variable, or function
   unused removes it — and removes nothing older than that.
 - **CORE-6 (hard).** Behavioural changes ship with the tests that verify them.
+
+## DOC — Documentation
+
+- **DOC-1 (hard). Stale docs ship fixed, in the same change.** A change that
+  renames a module path, moves a file, alters a command, changes a default, or
+  changes behaviour a document describes carries that document's edit with it.
+  The surface is every document in the repo — `README.md`, `CLAUDE.md`,
+  `CONTEXT.md`, `docs/**`, and the skill and agent files under `.claude/` — not
+  only the ones a documentation task owns. Deferring the edit to a later slice
+  or a follow-up issue is the violation: the next task reads the old fact and
+  plans against it. Documentation the change did not invalidate stays untouched
+  (CORE-1).
+- **DOC-2 (judgement). One home per fact.** A fact stated in two documents
+  drifts. State it once and reference it from the second — a coverage
+  threshold, an exclusion list, or a command belongs in one place with
+  pointers to it, never copied.
 
 ## GO — `apps/api`
 

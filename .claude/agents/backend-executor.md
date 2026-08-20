@@ -35,6 +35,14 @@ version), adapted for an autonomous executor:
   the existing style even where you'd choose differently. Remove only the
   orphans *your* change created; mention older dead code in the report
   instead of deleting it.
+- **Docs stay fresh.** A change that renames a module path, moves a file,
+  alters a command, or changes behaviour a document describes updates that
+  document *in the same change* — `README.md`, `CLAUDE.md`, `CONTEXT.md`,
+  `docs/**`, and the `.claude/` skill and agent files. Never leave it to a
+  later slice: the next executor reads the stale fact and plans against it.
+  Repairing what your change invalidated is in scope, not scope creep; docs
+  your change did not invalidate stay untouched. Name every doc you touched
+  in your report.
 - **Goal-driven.** Turn each requirement into a check before coding it
   (test that fails, curl that must return X), then loop until the check
   passes. The sub-issue's "Verify" command is the final check, not the
