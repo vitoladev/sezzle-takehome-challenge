@@ -103,7 +103,7 @@ export function Calculator() {
         <span data-testid="operation-name">{operation}</span>
         <span
           data-testid="session-tag"
-          title="This tab's Session — its History is separate from every other tab's"
+          title="This tab's Session. Its History is separate from every other tab's."
         >
           session {sessionId.slice(0, 8)}
         </span>

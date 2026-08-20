@@ -34,7 +34,7 @@ export function ResultDisplay({
   if (failed) {
     return (
       <Row state="failed">
-        <span className="readout readout--muted">No Result — the API refused this Calculation.</span>
+        <span className="readout readout--muted">No Result. The API refused this Calculation.</span>
       </Row>
     )
   }
@@ -56,7 +56,7 @@ export function ResultDisplay({
         <span
           className="marker"
           data-testid="result-inexact-marker"
-          title={`Inexact — the Result keeps ${PRECISION} significant digits (Precision); the true value has more.`}
+          title={`Inexact: the Result keeps ${PRECISION} significant digits (Precision); the true value has more.`}
         >
           ≈
         </span>
