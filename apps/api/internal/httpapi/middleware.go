@@ -65,7 +65,7 @@ func WithRecover(logger *slog.Logger, next http.Handler) http.Handler {
 			log.Error("panic", slog.Any("panic", v), slog.String("stack", string(debug.Stack())))
 			// A committed response can only be truncated, not corrected.
 			if !rec.wrote {
-				writeJSON(rec, http.StatusInternalServerError, Error{Error: InternalError}, log)
+				writeJSON(rec, http.StatusInternalServerError, Error{Error: InternalError, Message: "an unexpected error occurred"}, log)
 			}
 		}()
 		next.ServeHTTP(rec, r)

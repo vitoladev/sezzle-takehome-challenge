@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vitola/sezzle-take-home-challenge/api/internal/config"
-	"github.com/vitola/sezzle-take-home-challenge/api/internal/httpapi"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/config"
+	"github.com/vitoladev/sezzle-takehome-challenge/api/internal/httpapi"
 )
 
 const (

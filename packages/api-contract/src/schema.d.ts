@@ -24,6 +24,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calculations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the Session's History
+         * @description The Calculations this Session has performed, newest first.
+         */
+        get: operations["getCalculations"];
+        put?: never;
+        /**
+         * Perform a Calculation
+         * @description Applies one Operation to its Operands and records the Calculation in the Session's History.
+         */
+        post: operations["postCalculations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -36,13 +60,80 @@ export interface components {
          * @description Machine-readable error code.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "not_found" | "internal_error";
+        ErrorCode: "invalid_request" | "division_by_zero" | "undefined_result" | "negative_square_root" | "result_too_large" | "internal_error";
         Error: {
             error: components["schemas"]["ErrorCode"];
+            /**
+             * @description Human-readable explanation, renderable without a code-to-copy map.
+             * @example division by zero
+             */
+            message: string;
         };
+        /**
+         * @description An input value to a Calculation, carried as a decimal string. Exponent notation is deliberately rejected: one input form, one parser. A magnitude cap on exponents is not expressible here and is enforced in the domain, surfacing as 422 `result_too_large`.
+         * @example 0.1
+         */
+        Operand: string;
+        /**
+         * @description The named arithmetic function a Calculation applies.
+         * @enum {string}
+         */
+        Operation: "add" | "subtract" | "multiply" | "divide" | "power" | "sqrt" | "percentage";
+        /** @description An Operation over the Operands `left` and `right`. */
+        BinaryCalculation: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            operation: "add" | "subtract" | "multiply" | "divide" | "power";
+            left: components["schemas"]["Operand"];
+            right: components["schemas"]["Operand"];
+        };
+        /** @description An Operation over the single Operand `operand`. */
+        UnaryCalculation: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            operation: "sqrt";
+            operand: components["schemas"]["Operand"];
+        };
+        /** @description Percent-of — what share of `of` the `percent` percentage represents. */
+        PercentageCalculation: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            operation: "percentage";
+            percent: components["schemas"]["Operand"];
+            of: components["schemas"]["Operand"];
+        };
+        /** @description A Calculation to perform. The variant is selected by `operation`, so an Operation can only be sent with the Operands its arity allows. */
+        CalculationRequest: components["schemas"]["BinaryCalculation"] | components["schemas"]["UnaryCalculation"] | components["schemas"]["PercentageCalculation"];
+        /** @description One Operation applied to its Operands, with the Result it produced. The Operands present are the ones the Operation's arity names. Session identity is not part of a Calculation. */
+        Calculation: {
+            operation: components["schemas"]["Operation"];
+            left?: components["schemas"]["Operand"];
+            right?: components["schemas"]["Operand"];
+            operand?: components["schemas"]["Operand"];
+            percent?: components["schemas"]["Operand"];
+            of?: components["schemas"]["Operand"];
+            /**
+             * @description The Result in its shortest form that discards no digits.
+             * @example 0.3
+             */
+            result: string;
+            /** @description Whether the Result carries its true mathematical value with no digits discarded. Always reported, never inferred. */
+            exact: boolean;
+        };
+        /** @description The Calculations a Session has performed, newest first. */
+        History: components["schemas"]["Calculation"][];
     };
     responses: never;
-    parameters: never;
+    parameters: {
+        /** @description The Session whose History this request reads or appends to. It carries no identity beyond separating one caller's History from another's. */
+        SessionId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -68,6 +159,101 @@ export interface operations {
                 };
             };
             /** @description The API is up but unhealthy. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getCalculations: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The Session whose History this request reads or appends to. It carries no identity beyond separating one caller's History from another's. */
+                "X-Session-Id": components["parameters"]["SessionId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Session's History, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["History"];
+                };
+            };
+            /** @description The request is malformed — `invalid_request`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unexpected failure — `internal_error`. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    postCalculations: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The Session whose History this request reads or appends to. It carries no identity beyond separating one caller's History from another's. */
+                "X-Session-Id": components["parameters"]["SessionId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalculationRequest"];
+            };
+        };
+        responses: {
+            /** @description The Calculation was evaluated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calculation"];
+                };
+            };
+            /** @description The request is malformed — `invalid_request`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The request was understood but the Calculation has no reportable Result — `division_by_zero`, `undefined_result`, `negative_square_root`, or `result_too_large`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unexpected failure — `internal_error`. */
             500: {
                 headers: {
                     [name: string]: unknown;

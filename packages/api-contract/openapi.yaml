@@ -28,7 +28,86 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /calculations:
+    post:
+      operationId: postCalculations
+      summary: Perform a Calculation
+      description: >-
+        Applies one Operation to its Operands and records the Calculation in the
+        Session's History.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculationRequest'
+      responses:
+        '200':
+          description: The Calculation was evaluated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calculation'
+        '400':
+          description: The request is malformed — `invalid_request`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: >-
+            The request was understood but the Calculation has no reportable
+            Result — `division_by_zero`, `undefined_result`,
+            `negative_square_root`, or `result_too_large`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected failure — `internal_error`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      operationId: getCalculations
+      summary: Read the Session's History
+      description: The Calculations this Session has performed, newest first.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: The Session's History, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+        '400':
+          description: The request is malformed — `invalid_request`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected failure — `internal_error`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
+  parameters:
+    SessionId:
+      name: X-Session-Id
+      in: header
+      required: true
+      description: >-
+        The Session whose History this request reads or appends to. It carries
+        no identity beyond separating one caller's History from another's.
+      schema:
+        type: string
+        format: uuid
   schemas:
     Health:
       type: object
@@ -43,12 +122,148 @@ components:
       description: Machine-readable error code.
       enum:
         - invalid_request
-        - not_found
+        - division_by_zero
+        - undefined_result
+        - negative_square_root
+        - result_too_large
         - internal_error
     Error:
       type: object
       required:
         - error
+        - message
       properties:
         error:
           $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: Human-readable explanation, renderable without a code-to-copy map.
+          example: division by zero
+    Operand:
+      type: string
+      description: >-
+        An input value to a Calculation, carried as a decimal string.
+        Exponent notation is deliberately rejected: one input form, one parser.
+        A magnitude cap on exponents is not expressible here and is enforced in
+        the domain, surfacing as 422 `result_too_large`.
+      pattern: '^-?\d+(\.\d+)?$'
+      maxLength: 50
+      example: '0.1'
+    Operation:
+      type: string
+      description: The named arithmetic function a Calculation applies.
+      enum:
+        - add
+        - subtract
+        - multiply
+        - divide
+        - power
+        - sqrt
+        - percentage
+    BinaryCalculation:
+      type: object
+      description: An Operation over the Operands `left` and `right`.
+      additionalProperties: false
+      required:
+        - operation
+        - left
+        - right
+      properties:
+        operation:
+          type: string
+          enum:
+            - add
+            - subtract
+            - multiply
+            - divide
+            - power
+        left:
+          $ref: '#/components/schemas/Operand'
+        right:
+          $ref: '#/components/schemas/Operand'
+    UnaryCalculation:
+      type: object
+      description: An Operation over the single Operand `operand`.
+      additionalProperties: false
+      required:
+        - operation
+        - operand
+      properties:
+        operation:
+          type: string
+          enum:
+            - sqrt
+        operand:
+          $ref: '#/components/schemas/Operand'
+    PercentageCalculation:
+      type: object
+      description: Percent-of — what share of `of` the `percent` percentage represents.
+      additionalProperties: false
+      required:
+        - operation
+        - percent
+        - of
+      properties:
+        operation:
+          type: string
+          enum:
+            - percentage
+        percent:
+          $ref: '#/components/schemas/Operand'
+        of:
+          $ref: '#/components/schemas/Operand'
+    CalculationRequest:
+      description: >-
+        A Calculation to perform. The variant is selected by `operation`, so an
+        Operation can only be sent with the Operands its arity allows.
+      oneOf:
+        - $ref: '#/components/schemas/BinaryCalculation'
+        - $ref: '#/components/schemas/UnaryCalculation'
+        - $ref: '#/components/schemas/PercentageCalculation'
+      discriminator:
+        propertyName: operation
+        mapping:
+          add: '#/components/schemas/BinaryCalculation'
+          subtract: '#/components/schemas/BinaryCalculation'
+          multiply: '#/components/schemas/BinaryCalculation'
+          divide: '#/components/schemas/BinaryCalculation'
+          power: '#/components/schemas/BinaryCalculation'
+          sqrt: '#/components/schemas/UnaryCalculation'
+          percentage: '#/components/schemas/PercentageCalculation'
+    Calculation:
+      type: object
+      description: >-
+        One Operation applied to its Operands, with the Result it produced. The
+        Operands present are the ones the Operation's arity names. Session
+        identity is not part of a Calculation.
+      required:
+        - operation
+        - result
+        - exact
+      properties:
+        operation:
+          $ref: '#/components/schemas/Operation'
+        left:
+          $ref: '#/components/schemas/Operand'
+        right:
+          $ref: '#/components/schemas/Operand'
+        operand:
+          $ref: '#/components/schemas/Operand'
+        percent:
+          $ref: '#/components/schemas/Operand'
+        of:
+          $ref: '#/components/schemas/Operand'
+        result:
+          type: string
+          description: The Result in its shortest form that discards no digits.
+          example: '0.3'
+        exact:
+          type: boolean
+          description: >-
+            Whether the Result carries its true mathematical value with no
+            digits discarded. Always reported, never inferred.
+    History:
+      type: array
+      description: The Calculations a Session has performed, newest first.
+      items:
+        $ref: '#/components/schemas/Calculation'
